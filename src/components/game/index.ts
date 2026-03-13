@@ -11,5 +11,4 @@ export { QuestCard } from './QuestCard';
 export { ScreenTransition } from './ScreenTransition';
 export { StatRow } from './StatRow';
 export { StatusBar } from './StatusBar';
-export { ThemeToggle } from './ThemeToggle';
 export { XPBar } from './XPBar';

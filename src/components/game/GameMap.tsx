@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { GoogleMap, OverlayView, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, OverlayViewF, useJsApiLoader } from '@react-google-maps/api';
 import type { MapMarkerData } from '@/types/game';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -14,9 +14,12 @@ interface GameMapProps {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
+/** When true, never call Geolocation API — player is always Kyiv (no permission prompt). */
+const GPS_STUB = true;
+
 const DEFAULT_CENTER: LatLng = { lat: 50.4501, lng: 30.5234 }; // Kyiv
-const DEFAULT_ZOOM = 15;
-const SPREAD = 0.008; // ~900 m spread
+const DEFAULT_ZOOM = 14;
+const SPREAD = 0.022; // ~2.5 km around Kyiv so monsters are clearly visible
 const MAP_CONTAINER_STYLE: React.CSSProperties = {
   width: '100%',
   height: '100%',
@@ -27,6 +30,11 @@ const MARKER_META: Record<string, { color: string; emoji: string }> = {
   chest:   { color: '#f59e0b', emoji: '📦' },
   event:   { color: '#a855f7', emoji: '🌟' },
 };
+
+const LIGHT_MAP_STYLES: google.maps.MapTypeStyle[] = [
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -51,28 +59,39 @@ function GameMarkerOverlay({
   const meta = MARKER_META[marker.type] ?? { color: '#3b82f6', emoji: '❓' };
   const label = marker.label.length > 14 ? marker.label.slice(0, 13) + '…' : marker.label;
 
+  const position = markerToLatLng(marker, center);
+  const pinWidth = 120;
+  const pinHeight = 36;
+
   return (
-    <OverlayView
-      position={markerToLatLng(marker, center)}
-      mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+    <OverlayViewF
+      position={position}
+      mapPaneName="floatPane"
+      getPixelPositionOffset={(width: number, height: number) => ({
+        x: -((width || pinWidth) / 2),
+        y: -(height || pinHeight),
+      })}
     >
       <div
+        role="button"
+        tabIndex={0}
         onClick={(e) => { e.stopPropagation(); onClick(); }}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
         style={{
-          transform: 'translate(-50%, -100%)',
           cursor: 'pointer',
           userSelect: 'none',
-          display: 'flex',
+          display: 'inline-flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 2,
+          width: pinWidth,
+          minHeight: pinHeight,
         }}
       >
         {/* Pin body */}
         <div
           style={{
             background: meta.color,
-            border: '2px solid white',
+            border: '2px solid hsl(38 35% 88%)',
             borderRadius: 8,
             borderBottomLeftRadius: 2,
             borderBottomRightRadius: 2,
@@ -87,7 +106,7 @@ function GameMarkerOverlay({
           <span style={{ fontSize: 14 }}>{meta.emoji}</span>
           <span
             style={{
-              color: 'white',
+              color: 'hsl(38 30% 96%)',
               fontSize: 11,
               fontWeight: 700,
               fontFamily: 'system-ui, sans-serif',
@@ -108,11 +127,14 @@ function GameMarkerOverlay({
           }}
         />
       </div>
-    </OverlayView>
+    </OverlayViewF>
   );
 }
 
 // ─── Inner map (only rendered when API is loaded) ─────────────────────────────
+
+const LOCATION_ERROR_MESSAGE =
+  'Location is blocked. To enable: click the lock or tune icon next to the URL → Site settings → Location → Allow.';
 
 function MapRenderer({
   markers,
@@ -120,21 +142,45 @@ function MapRenderer({
   onCenterRef,
 }: GameMapProps) {
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
-  const [playerLocation, setPlayerLocation] = useState<LatLng | null>(null);
+  // Stub: start as if in Kyiv; no auto GPS request
+  const [playerLocation, setPlayerLocation] = useState<LatLng | null>(DEFAULT_CENTER);
+  const [locationError, setLocationError] = useState<'denied' | 'unavailable' | 'timeout' | null>(null);
+  const [locationBannerDismissed, setLocationBannerDismissed] = useState(false);
   const mapCenter = playerLocation ?? DEFAULT_CENTER;
   const mapReady = !!mapInstance;
 
+  const handleLocationError = useCallback((error: GeolocationPositionError) => {
+    if (error.code === 1) setLocationError('denied');
+    else if (error.code === 2) setLocationError('unavailable');
+    else setLocationError('timeout');
+  }, []);
+
   const centerOnPlayer = useCallback(() => {
-    navigator.geolocation?.getCurrentPosition(
+    if (GPS_STUB) {
+      setPlayerLocation(DEFAULT_CENTER);
+      setLocationError(null);
+      setLocationBannerDismissed(true);
+      mapInstance?.panTo(DEFAULT_CENTER);
+      mapInstance?.setZoom(DEFAULT_ZOOM);
+      return;
+    }
+    if (!navigator.geolocation) {
+      setLocationError('unavailable');
+      return;
+    }
+    setLocationBannerDismissed(false);
+    navigator.geolocation.getCurrentPosition(
       (pos) => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setPlayerLocation(loc);
+        setLocationError(null);
         mapInstance?.panTo(loc);
         mapInstance?.setZoom(DEFAULT_ZOOM);
       },
-      () => {},
+      handleLocationError,
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     );
-  }, [mapInstance]);
+  }, [mapInstance, handleLocationError]);
 
   useEffect(() => {
     onCenterRef?.(centerOnPlayer);
@@ -162,17 +208,29 @@ function MapRenderer({
     return () => { clearTimeout(t); window.removeEventListener('resize', trigger); };
   }, [mapInstance]);
 
-  // Auto-acquire GPS on mount
-  useEffect(() => {
-    navigator.geolocation?.getCurrentPosition(
-      (pos) =>
-        setPlayerLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => {},
-    );
-  }, []);
+  // GPS stub: no auto-request on mount; player starts in Kyiv (DEFAULT_CENTER)
+  // User can still tap GPS button to try real location
+  // useEffect(() => { ... getCurrentPosition ... }, []) removed for stub
+
+  const showLocationBanner = locationError && !locationBannerDismissed;
 
   return (
     <div className="w-full h-full relative overflow-hidden">
+      {showLocationBanner && (
+        <div className="absolute top-2 left-2 right-2 z-20 flex items-start gap-2 rounded-lg border-2 border-amber-500/80 bg-amber-50 px-3 py-2 shadow-lg">
+          <p className="flex-1 text-xs text-amber-900">
+            {LOCATION_ERROR_MESSAGE}
+          </p>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            className="shrink-0 rounded p-1 text-amber-700 hover:bg-amber-200/50"
+            onClick={() => setLocationBannerDismissed(true)}
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <GoogleMap
         mapContainerStyle={MAP_CONTAINER_STYLE}
         center={mapCenter}
@@ -185,10 +243,7 @@ function MapRenderer({
           fullscreenControl: false,
           gestureHandling: 'greedy',
           clickableIcons: false,
-          styles: [
-            { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-            { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-          ],
+          styles: LIGHT_MAP_STYLES,
         }}
       >
         {mapReady &&
@@ -202,9 +257,10 @@ function MapRenderer({
           ))}
 
         {mapReady && playerLocation && (
-          <OverlayView
+          <OverlayViewF
             position={playerLocation}
-            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+            mapPaneName="floatPane"
+            getPixelPositionOffset={(w: number, h: number) => ({ x: -((w || 20) / 2), y: -((h || 20) / 2) })}
           >
             <div
               style={{
@@ -212,12 +268,11 @@ function MapRenderer({
                 height: 20,
                 borderRadius: '50%',
                 background: 'hsl(217 91% 60%)',
-                border: '3px solid white',
+                border: '3px solid hsl(38 35% 92%)',
                 boxShadow: '0 0 0 4px hsl(217 91% 60% / 0.3)',
-                transform: 'translate(-50%, -50%)',
               }}
             />
-          </OverlayView>
+          </OverlayViewF>
         )}
       </GoogleMap>
     </div>
@@ -235,10 +290,10 @@ function GoogleMapLoader(props: GameMapProps & { apiKey: string }) {
 
   if (loadError) {
     return (
-      <div className="w-full h-full game-gradient-sky flex items-center justify-center p-6">
-        <div className="text-center bg-card/90 backdrop-blur rounded-lg border-2 border-b-4 border-border p-4">
-          <p className="font-display font-bold text-destructive mb-1">Map failed to load</p>
-          <p className="text-xs text-muted-foreground">Check API key & Maps JS billing</p>
+      <div className="w-full h-full relative">
+        <PlaceholderMapView {...rest} />
+        <div className="absolute top-4 left-4 right-4 text-center px-3 py-2 bg-destructive/90 text-destructive-foreground rounded-lg border-2 border-border text-xs font-medium">
+          Map failed to load — check API key & billing. Markers below are clickable.
         </div>
       </div>
     );
@@ -258,20 +313,83 @@ function GoogleMapLoader(props: GameMapProps & { apiKey: string }) {
   return <MapRenderer {...rest} />;
 }
 
+// ─── Placeholder map (no API key or demo) ─────────────────────────────────────
+
+function PlaceholderMapView({ markers, onMarkerClick }: GameMapProps) {
+  return (
+    <div className="w-full h-full min-h-[300px] game-gradient-sky relative overflow-hidden">
+      {/* Grid pattern */}
+      <div
+        className="absolute inset-0 opacity-30"
+        style={{
+          backgroundImage: `
+            linear-gradient(hsl(217 50% 85% / 0.5) 1px, transparent 1px),
+            linear-gradient(90deg, hsl(217 50% 85% / 0.5) 1px, transparent 1px)`,
+          backgroundSize: '32px 32px',
+        }}
+      />
+      {/* You are here: Kyiv */}
+      <div className="absolute bottom-14 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-primary/90 text-primary-foreground text-xs font-display font-bold z-10 shadow-lg">
+        📍 Київ (заглушка)
+      </div>
+      {/* Markers at x% / y% */}
+      {markers.map((marker) => {
+        const meta = MARKER_META[marker.type] ?? { color: '#3b82f6', emoji: '❓' };
+        const label = marker.label.length > 14 ? marker.label.slice(0, 13) + '…' : marker.label;
+        return (
+          <button
+            key={marker.id}
+            type="button"
+            className="absolute transform -translate-x-1/2 -translate-y-full cursor-pointer text-left select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg z-20"
+            style={{
+              left: `${marker.x}%`,
+              top: `${marker.y}%`,
+            }}
+            onClick={() => onMarkerClick(marker)}
+          >
+            <div
+              className="flex flex-col items-center gap-0.5"
+              style={{
+                filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.35))',
+              }}
+            >
+              <div
+                className="flex items-center gap-1.5 border-2 border-[hsl(38_35%_88%)] rounded-lg px-2 py-1"
+                style={{
+                  background: meta.color,
+                  borderBottomLeftRadius: 2,
+                  borderBottomRightRadius: 2,
+                  boxShadow: `0 3px 0 ${meta.color}99`,
+                }}
+              >
+                <span className="text-sm">{meta.emoji}</span>
+                <span className="text-[hsl(38_30%_96%)] text-[11px] font-bold font-[system-ui,sans-serif] whitespace-nowrap">
+                  {label}
+                </span>
+              </div>
+              <div
+                className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[6px] border-l-transparent border-r-transparent -mt-0.5"
+                style={{ borderTopColor: meta.color }}
+              />
+            </div>
+          </button>
+        );
+      })}
+      {/* Hint banner */}
+      <div className="absolute bottom-4 left-4 right-4 text-center px-3 py-2 bg-card/90 backdrop-blur rounded-lg border-2 border-border text-xs text-muted-foreground">
+        Add VITE_GOOGLE_MAPS_API_KEY to .env for real map
+      </div>
+    </div>
+  );
+}
+
 // ─── Public component ─────────────────────────────────────────────────────────
 
 export function GameMap(props: GameMapProps) {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim();
 
   if (!apiKey) {
-    return (
-      <div className="w-full h-full game-gradient-sky flex items-center justify-center">
-        <div className="text-center px-6 py-4 bg-card/90 backdrop-blur rounded-lg border-2 border-b-4 border-border">
-          <p className="font-display font-bold text-foreground mb-1">No Maps API key</p>
-          <p className="text-xs text-muted-foreground">Add VITE_GOOGLE_MAPS_API_KEY to .env</p>
-        </div>
-      </div>
-    );
+    return <PlaceholderMapView {...props} />;
   }
 
   return <GoogleMapLoader apiKey={apiKey} {...props} />;

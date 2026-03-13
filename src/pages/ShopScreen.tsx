@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useGame } from '@/context/GameContext';
 import { shopItems } from '@/data/shop';
-import { ShopCategory } from '@/types/game';
+import type { ShopCategory, ShopItem } from '@/types/game';
 import { toast } from 'sonner';
 
 const SHOP_CATEGORIES: ShopCategory[] = ['potions', 'keys', 'boosters', 'cosmetics'];
@@ -18,13 +18,10 @@ export default function ShopScreen() {
   const { state, dispatch } = useGame();
   const [activeCategory, setActiveCategory] = useState<ShopCategory>('potions');
 
-  const filtered = shopItems.filter(
-    (s) => s.item.category === activeCategory
-  );
+  const filtered = shopItems.filter((s) => s.item.category === activeCategory);
 
-  const handleBuy = (shopItem: (typeof shopItems)[0]) => {
-    const price = shopItem.item.price;
-    const gemPrice = shopItem.item.gemPrice;
+  const handleBuy = (shopItem: ShopItem) => {
+    const { price, gemPrice } = shopItem.item;
 
     if (gemPrice) {
       if (state.player.gems < gemPrice) {
@@ -45,19 +42,19 @@ export default function ShopScreen() {
   };
 
   return (
-    <GameShell>
+    <GameShell pattern="shop">
       <BackHeader title="Shop" />
       <ScreenTransition>
-        {/* Currency display */}
-        <div className="flex gap-3 px-4 py-3 border-b-2 border-border">
-          <div className="flex items-center gap-1.5 bg-[hsl(var(--game-yellow)/0.12)] border-2 border-[hsl(var(--game-yellow)/0.3)] rounded-md px-3 py-1.5">
-            <Coins className="w-4 h-4 text-[hsl(var(--game-yellow))]" />
+        {/* Currency HUD */}
+        <div className="game-strip mx-4 mt-3 flex gap-3 px-4 py-2.5 rounded-b-lg">
+          <div className="flex items-center gap-2 rounded-full bg-[hsl(var(--game-yellow)/0.15)] border-2 border-[hsl(var(--game-yellow)/0.6)] pl-2 pr-3 py-1.5 shadow-[0_2px_0_hsl(38_92%_35%/0.5),inset_0_1px_0_hsl(var(--bar-highlight)/0.85)]">
+            <Coins className="w-5 h-5 text-[hsl(var(--game-yellow))]" />
             <span className="font-display font-bold text-sm text-[hsl(var(--game-yellow))]">
               {state.player.gold}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 bg-primary/10 border-2 border-primary/30 rounded-md px-3 py-1.5">
-            <Gem className="w-4 h-4 text-secondary" />
+          <div className="flex items-center gap-2 rounded-full bg-secondary/15 border-2 border-secondary/50 pl-2 pr-3 py-1.5 shadow-[0_2px_0_hsl(38_85%_35%/0.4),inset_0_1px_0_hsl(var(--bar-highlight)/0.85)]">
+            <Gem className="w-5 h-5 text-secondary" />
             <span className="font-display font-bold text-sm text-secondary">
               {state.player.gems}
             </span>
@@ -68,12 +65,12 @@ export default function ShopScreen() {
           <CategoryTabs
             categories={SHOP_CATEGORIES}
             active={activeCategory}
-            onChange={(c) => setActiveCategory(c as ShopCategory)}
+            onChange={setActiveCategory}
           />
         </div>
 
         <ScrollArea className="flex-1 px-4 pt-4 pb-4">
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 md:grid md:grid-cols-2">
             {filtered.length === 0 && (
               <div className="text-center py-10 text-muted-foreground text-sm">
                 No items in this category
@@ -82,9 +79,9 @@ export default function ShopScreen() {
             {filtered.map((shopItem) => (
               <div
                 key={shopItem.item.id}
-                className="flex items-center gap-3 bg-card rounded-lg border-2 border-b-4 border-border p-3 game-shadow-card"
+                className="game-panel flex items-center gap-3 p-3 transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card),0_6px_20px_hsl(0_0%_0%/0.12)] active:translate-y-0 active:scale-[0.99]"
               >
-                <div className="w-14 h-14 rounded-lg border-2 border-border bg-muted flex items-center justify-center text-3xl shrink-0">
+                <div className="w-14 h-14 rounded-lg border-2 border-border bg-muted flex items-center justify-center text-3xl shrink-0 shadow-[0_2px_0_hsl(var(--border)),inset_0_1px_0_hsl(var(--bar-highlight)/0.6)]">
                   {shopItem.item.emoji}
                 </div>
                 <div className="flex-1 min-w-0">

@@ -8,29 +8,27 @@ import { ScreenTransition } from '@/components/game/ScreenTransition';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useGame } from '@/context/GameContext';
-import { ItemCategory, InventoryItem } from '@/types/game';
+import type { ItemCategory, InventoryItem } from '@/types/game';
 
 const CATEGORIES: ItemCategory[] = ['weapons', 'armor', 'consumables', 'materials', 'keys'];
+const MIN_GRID_CELLS = 10;
 
 export default function InventoryScreen() {
   const { state } = useGame();
   const [activeCategory, setActiveCategory] = useState<ItemCategory>('weapons');
   const [selected, setSelected] = useState<InventoryItem | null>(null);
 
-  const filtered = state.inventory.filter(
-    (inv) => inv.item.category === activeCategory
-  );
-
-  // Fill grid to at least 10 cells
-  const gridItems = [...filtered, ...Array(Math.max(0, 10 - filtered.length)).fill(null)];
+  const filtered = state.inventory.filter((inv) => inv.item.category === activeCategory);
+  const emptySlots = Math.max(0, MIN_GRID_CELLS - filtered.length);
+  const totalItems = state.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
 
   return (
-    <GameShell>
+    <GameShell pattern="grid">
       <BackHeader
         title="Inventory"
         right={
-          <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-1">
-            {state.inventory.reduce((a, b) => a + b.quantity, 0)} items
+          <span className="text-xs font-display font-bold text-muted-foreground rounded-full border-2 border-border bg-muted px-3 py-1.5 shadow-[0_2px_0_hsl(var(--border)),inset_0_1px_0_hsl(var(--bar-highlight)/0.5)]">
+            {totalItems} items
           </span>
         }
       />
@@ -39,33 +37,31 @@ export default function InventoryScreen() {
           <CategoryTabs
             categories={CATEGORIES}
             active={activeCategory}
-            onChange={(c) => setActiveCategory(c as ItemCategory)}
+            onChange={setActiveCategory}
           />
         </div>
 
         <ScrollArea className="flex-1 px-4 pt-4 pb-4">
-          <div className="grid grid-cols-5 gap-2">
-            {gridItems.map((inv, i) =>
-              inv ? (
-                <ItemCard
-                  key={`${inv.item.id}-${i}`}
-                  inventoryItem={inv}
-                  selected={selected?.item.id === inv.item.id}
-                  onClick={() => setSelected(inv)}
-                />
-              ) : (
-                <div
-                  key={`empty-${i}`}
-                  className="aspect-square rounded-xl border-2 border-dashed border-border/50 bg-muted/20"
-                />
-              )
-            )}
+          <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2">
+            {filtered.map((inv) => (
+              <ItemCard
+                key={inv.item.id}
+                inventoryItem={inv}
+                selected={selected?.item.id === inv.item.id}
+                onClick={() => setSelected(inv)}
+              />
+            ))}
+            {Array.from({ length: emptySlots }, (_, i) => (
+              <div
+                key={`empty-${i}`}
+                className="aspect-square rounded-xl border-2 border-dashed border-border/50 bg-muted/20"
+              />
+            ))}
           </div>
         </ScrollArea>
       </ScreenTransition>
 
-      {/* Item detail dialog */}
-      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+      <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
         <DialogContent className="max-w-[320px] rounded-3xl">
           {selected && (
             <>
@@ -81,23 +77,19 @@ export default function InventoryScreen() {
                 </div>
               </DialogHeader>
               <p className="text-sm text-muted-foreground">{selected.item.description}</p>
-              <div className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Quantity: <strong className="text-foreground">{selected.quantity}</strong>
-              </div>
+              </p>
               <div className="flex gap-2 mt-2">
                 {selected.item.category === 'consumables' && (
-                  <GameButton variant="primary" size="sm" fullWidth>
-                    Use
-                  </GameButton>
+                  <GameButton variant="primary" size="sm" fullWidth>Use</GameButton>
                 )}
                 {(selected.item.category === 'weapons' || selected.item.category === 'armor') && (
                   <GameButton variant="primary" size="sm" fullWidth>
                     {selected.equipped ? 'Unequip' : 'Equip'}
                   </GameButton>
                 )}
-                <GameButton variant="outline" size="sm" fullWidth>
-                  Drop
-                </GameButton>
+                <GameButton variant="outline" size="sm" fullWidth>Drop</GameButton>
               </div>
             </>
           )}

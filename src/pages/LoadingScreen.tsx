@@ -34,11 +34,12 @@ export default function LoadingScreen() {
   }, [progress, navigate]);
 
   return (
-    <div className="min-h-screen game-gradient-sky flex flex-col items-center justify-center p-8">
-      <div className="w-full max-w-[320px] flex flex-col items-center gap-8">
+    <div className="min-h-screen game-gradient-sky flex flex-col items-center justify-center p-8 relative">
+      <div className="absolute inset-0 screen-texture-paper pointer-events-none" />
+      <div className="relative z-10 w-full max-w-[320px] flex flex-col items-center gap-8">
         {/* Logo */}
         <div className="flex flex-col items-center gap-3 animate-bounce-in">
-          <div className="w-28 h-28 rounded-2xl game-gradient-hero flex items-center justify-center game-shadow text-6xl animate-pulse-glow border-2 border-white/20">
+          <div className="w-28 h-28 rounded-2xl game-gradient-hero flex items-center justify-center game-shadow text-6xl animate-pulse-glow border-2 border-primary/40">
             🗺️
           </div>
           <h1 className="font-display font-bold text-5xl text-foreground game-text-stroke tracking-wide">
@@ -51,10 +52,10 @@ export default function LoadingScreen() {
 
         {/* Progress */}
         <div className="w-full flex flex-col gap-2">
-          <div className="h-4 w-full rounded-lg border-2 border-border bg-muted overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.15)]">
+          <div className="h-4 w-full rounded-lg border-2 border-border bg-muted overflow-hidden shadow-[inset_0_2px_4px_hsl(200_25%_16%/0.12)]">
             <div
-              className="h-full rounded-md game-gradient-hero transition-all duration-100"
-              style={{ width: `${progress}%` }}
+              className="h-full rounded-md game-gradient-hero transition-all duration-100 relative"
+              style={{ width: `${progress}%`, boxShadow: 'inset 0 1px 0 hsl(var(--bar-highlight) / 0.85)' }}
             />
           </div>
           <p className="text-xs text-center text-muted-foreground font-display tracking-wide">
@@ -63,7 +64,7 @@ export default function LoadingScreen() {
         </div>
 
         {/* Tip */}
-        <div className="bg-card/90 backdrop-blur rounded-lg border-2 border-b-4 border-border px-4 py-3 text-center game-shadow-card">
+        <div className="game-panel px-4 py-3 text-center">
           <p className="text-xs text-muted-foreground mb-1 font-display uppercase tracking-widest">💡 Tip</p>
           <p className="text-sm font-medium text-foreground">{tips[tipIndex]}</p>
         </div>

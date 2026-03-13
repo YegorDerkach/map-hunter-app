@@ -30,11 +30,15 @@ export default function CharacterScreen() {
   const { player } = state;
 
   return (
-    <GameShell>
+    <GameShell
+      pattern="paper"
+      outerClassName="bg-gradient-to-b from-primary/25 via-[hsl(var(--game-amber)/0.12)] to-muted/50"
+      innerClassName="bg-gradient-to-b from-primary/8 via-card to-background"
+    >
       <BackHeader title="Character" />
       <ScreenTransition>
         {/* Avatar section */}
-        <div className="flex flex-col items-center gap-2 p-6 pb-4 bg-gradient-to-b from-muted/30 to-background">
+        <div className="flex flex-col items-center gap-2 p-6 pb-4 bg-gradient-to-b from-primary/10 via-transparent to-transparent">
           <div className="w-24 h-24 rounded-full game-gradient-hero flex items-center justify-center text-5xl game-shadow animate-float border-4 border-background">
             {player.avatarEmoji}
           </div>
@@ -80,7 +84,7 @@ export default function CharacterScreen() {
             </TabsContent>
 
             <TabsContent value="skills">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {skills.map((skill) => (
                   <div
                     key={skill.name}
@@ -100,7 +104,7 @@ export default function CharacterScreen() {
             </TabsContent>
 
             <TabsContent value="equipment">
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                 {equipSlots.map((slot) => (
                   <div
                     key={slot.label}

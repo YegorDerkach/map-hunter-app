@@ -6,104 +6,85 @@
 
 @layer base {
   :root {
-    --background: 210 100% 97%;
-    --foreground: 220 30% 20%;
+    /* Colorful warm/teal palette – no white, rich cream & teal */
+    --background: 38 32% 90%;
+    --foreground: 200 30% 18%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 30% 20%;
+    --card: 40 28% 88%;
+    --card-foreground: 200 30% 18%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 30% 20%;
+    --popover: 40 28% 88%;
+    --popover-foreground: 200 30% 18%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 173 58% 42%;
+    --primary-foreground: 38 28% 98%;
 
-    --secondary: 174 72% 56%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 38 92% 50%;
+    --secondary-foreground: 38 28% 98%;
 
-    --muted: 210 40% 93%;
-    --muted-foreground: 220 15% 50%;
+    --muted: 35 25% 80%;
+    --muted-foreground: 200 18% 38%;
 
-    --accent: 36 100% 57%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 32 95% 52%;
+    --accent-foreground: 38 28% 98%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 72% 52%;
+    --destructive-foreground: 38 28% 98%;
 
-    --border: 210 30% 88%;
-    --input: 210 30% 88%;
-    --ring: 217 91% 60%;
+    --border: 38 22% 72%;
+    --input: 38 22% 72%;
+    --ring: 173 58% 42%;
 
     --radius: 0.5rem;
 
-    /* Game-specific tokens */
-    --game-orange: 24 95% 58%;
-    --game-green: 142 71% 45%;
-    --game-purple: 270 67% 60%;
-    --game-red: 0 84% 60%;
-    --game-yellow: 45 100% 55%;
-    --game-pink: 330 80% 65%;
+    /* Game tokens – aligned with palette */
+    --game-orange: 24 95% 55%;
+    --game-green: 152 55% 40%;
+    --game-purple: 268 55% 55%;
+    --game-red: 0 72% 52%;
+    --game-yellow: 45 98% 52%;
+    --game-pink: 330 65% 60%;
+    --game-cyan: 188 55% 42%;
+    --game-teal: 172 55% 38%;
+    --game-indigo: 243 55% 55%;
+    --game-amber: 38 92% 50%;
+    --game-lime: 84 55% 40%;
+    --game-rose: 351 65% 58%;
 
-    --gradient-sky: linear-gradient(180deg, hsl(200 80% 85%), hsl(210 100% 97%));
-    --gradient-hero: linear-gradient(135deg, hsl(217 91% 60%), hsl(174 72% 56%));
-    --gradient-gold: linear-gradient(135deg, hsl(45 100% 55%), hsl(36 100% 57%));
-    --gradient-battle: linear-gradient(180deg, hsl(0 84% 60% / 0.1), hsl(270 67% 60% / 0.1));
+    --gradient-sky: linear-gradient(180deg, hsl(190 40% 88%), hsl(38 32% 90%));
+    --gradient-hero: linear-gradient(180deg, hsl(173 50% 48%), hsl(38 92% 48%));
+    --gradient-gold: linear-gradient(180deg, hsl(45 98% 58%), hsl(32 95% 48%));
+    --gradient-battle: linear-gradient(180deg, hsl(0 60% 50% / 0.12), hsl(268 50% 50% / 0.12));
 
-    /* Button bottom shadows (3D press effect) */
-    --shadow-btn-primary: 0 5px 0 hsl(217 91% 38%);
-    --shadow-btn-danger:  0 5px 0 hsl(0 84% 35%);
-    --shadow-btn-gold:    0 5px 0 hsl(30 90% 30%);
-    --shadow-btn-outline: 0 4px 0 hsl(210 30% 75%);
+    --shadow-btn-primary: 0 5px 0 hsl(173 58% 28%);
+    --shadow-btn-danger:  0 5px 0 hsl(0 72% 35%);
+    --shadow-btn-gold:    0 5px 0 hsl(32 90% 28%);
+    --shadow-btn-outline: 0 4px 0 hsl(38 22% 62%);
 
-    --shadow-game: 0 4px 20px hsl(217 91% 60% / 0.25);
-    --shadow-card: 0 4px 0 hsl(210 30% 80%), 0 6px 16px hsl(220 30% 20% / 0.1);
-    --shadow-button: 0 5px 0 hsl(220 30% 20% / 0.2);
+    --shadow-game: 0 4px 20px hsl(173 58% 42% / 0.2);
+    --shadow-card: 0 4px 0 hsl(38 22% 65%), 0 6px 16px hsl(200 25% 16% / 0.12);
+    --shadow-button: 0 5px 0 hsl(200 25% 16% / 0.15);
 
     --font-display: 'Fredoka', sans-serif;
     --font-body: 'Nunito', sans-serif;
-  }
-}
 
-@layer base {
-  .dark {
-    --background: 222 47% 8%;
-    --foreground: 210 40% 92%;
+    /* Game panel frame */
+    --game-frame-border: 3px;
+    --game-frame-radius: 0.75rem;
+    --game-frame-inner-shadow: inset 0 2px 4px hsl(200 25% 16% / 0.08);
+    --bar-highlight: 173 40% 92%;
 
-    --card: 222 47% 12%;
-    --card-foreground: 210 40% 92%;
-
-    --popover: 222 47% 12%;
-    --popover-foreground: 210 40% 92%;
-
-    --primary: 217 91% 65%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 174 72% 45%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 222 47% 18%;
-    --muted-foreground: 215 20% 55%;
-
-    --accent: 36 100% 60%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 217 33% 22%;
-    --input: 217 33% 22%;
-    --ring: 217 91% 65%;
-
-    --gradient-sky: linear-gradient(180deg, hsl(222 50% 14%), hsl(222 47% 8%));
-    --gradient-battle: linear-gradient(180deg, hsl(0 84% 40% / 0.15), hsl(270 67% 40% / 0.15));
-    --shadow-btn-primary: 0 5px 0 hsl(217 91% 35%);
-    --shadow-btn-danger:  0 5px 0 hsl(0 84% 28%);
-    --shadow-btn-gold:    0 5px 0 hsl(30 90% 22%);
-    --shadow-btn-outline: 0 4px 0 hsl(217 33% 16%);
-
-    --shadow-game: 0 4px 20px hsl(217 91% 60% / 0.4);
-    --shadow-card: 0 4px 0 hsl(217 33% 16%), 0 6px 20px hsl(0 0% 0% / 0.35);
-    --shadow-button: 0 5px 0 hsl(0 0% 0% / 0.45);
+    /* SVG pattern & noise (data URIs for light theme) */
+    --noise-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.06'/%3E%3C/svg%3E");
+    --pattern-dots: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='2' cy='2' r='1' fill='%234a5568' fill-opacity='0.08'/%3E%3C/svg%3E");
+    --pattern-grid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M 0 12 L 24 12 M 12 0 L 12 24' stroke='%237f8c8d' stroke-width='0.5' opacity='0.4' fill='none'/%3E%3C/svg%3E");
+    --pattern-map: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpath d='M 0 16 L 32 16 M 16 0 L 16 32' stroke='%2316a085' stroke-width='0.4' opacity='0.2' fill='none'/%3E%3C/svg%3E");
+    /* Paper: filter 0 0 100% 100% for stitch; higher opacity so visible on light background */
+    --pattern-paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cfilter id='p' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.36'/%3E%3C/svg%3E");
+    --pattern-cross: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cpath d='M 0 8 L 16 8 M 8 0 L 8 16' stroke='%236b7280' stroke-width='0.35' opacity='0.35' fill='none'/%3E%3C/svg%3E");
+    --pattern-diag: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M -2 12 L 12 -2 M 10 24 L 24 10 M 26 12 L 12 26' stroke='%23e53e3e' stroke-width='0.4' opacity='0.12' fill='none'/%3E%3Cpath d='M 14 -2 L 26 10 M 24 14 L 38 28' stroke='%239f7aea' stroke-width='0.4' opacity='0.1' fill='none'/%3E%3C/svg%3E");
+    --pattern-radial-shop: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='80'%3E%3CradialGradient id='g' cx='50%25' cy='0%25' r='80%25'%3E%3Cstop offset='0%25' stop-color='%23d69e2e' stop-opacity='0.12'/%3E%3Cstop offset='100%25' stop-color='transparent'/%3E%3C/radialGradient%3E%3Crect width='100%25' height='100%25' fill='url(%23g)'/%3E%3C/svg%3E");
+    --pattern-radial-quest: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='80'%3E%3CradialGradient id='q' cx='80%25' cy='20%25' r='60%25'%3E%3Cstop offset='0%25' stop-color='%2316a085' stop-opacity='0.1'/%3E%3Cstop offset='100%25' stop-color='transparent'/%3E%3C/radialGradient%3E%3Crect width='100%25' height='100%25' fill='url(%23q)'/%3E%3C/svg%3E");
   }
 }
 
@@ -115,6 +96,18 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);
+    position: relative;
+  }
+
+  /* Global noise overlay – fixed over viewport */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: var(--noise-svg);
+    background-size: 200px 200px;
+    pointer-events: none;
+    z-index: 9999;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -152,13 +145,107 @@
     box-shadow: var(--shadow-button);
   }
   .game-text-stroke {
-    -webkit-text-stroke: 1px hsl(220 30% 20% / 0.1);
+    -webkit-text-stroke: 1px hsl(200 25% 16% / 0.12);
   }
   /* Card with hard bottom border (pixel game feel) */
   .game-card {
     border-width: 2px;
     border-bottom-width: 4px;
     box-shadow: var(--shadow-card);
+  }
+
+  /* Game panel – thick border, inner shadow, unified screen/card style */
+  .game-panel {
+    border-width: var(--game-frame-border);
+    border-style: solid;
+    border-color: hsl(var(--border));
+    border-radius: var(--game-frame-radius);
+    box-shadow: var(--shadow-card), var(--game-frame-inner-shadow);
+    background-color: hsl(var(--card));
+  }
+
+  .game-panel-header {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid hsl(var(--border));
+    margin-bottom: 0.5rem;
+  }
+
+  /* Strip = same style as map StatusBar (top bar) */
+  .game-strip {
+    border-width: var(--game-frame-border);
+    border-top-width: 0;
+    border-left-width: 0;
+    border-right-width: 0;
+    border-style: solid;
+    border-color: hsl(var(--border));
+    border-radius: 0 0 var(--game-frame-radius) var(--game-frame-radius);
+    box-shadow: var(--shadow-card), var(--game-frame-inner-shadow), 0 4px 16px hsl(0 0% 0% / 0.2);
+    background-color: hsl(var(--card));
+  }
+  /* Strip at bottom of screen */
+  .game-strip-bottom {
+    border-width: var(--game-frame-border);
+    border-bottom-width: 0;
+    border-left-width: 0;
+    border-right-width: 0;
+    border-style: solid;
+    border-color: hsl(var(--border));
+    border-radius: var(--game-frame-radius) var(--game-frame-radius) 0 0;
+    box-shadow: var(--shadow-card), var(--game-frame-inner-shadow), 0 -4px 16px hsl(0 0% 0% / 0.2);
+    background-color: hsl(var(--card));
+  }
+
+  /* Pill/badge = inner elements like level, gold, gems (bottom shadow + inset highlight) */
+  .game-pill {
+    box-shadow: 0 2px 0 hsl(var(--border)), inset 0 1px 0 hsl(var(--bar-highlight) / 0.9);
+  }
+
+  /* Screen textures – SVG patterns (noise is global via body::after) */
+  .screen-texture-paper {
+    background-image: var(--pattern-paper);
+    background-size: 256px 256px;
+  }
+  .screen-texture-dots {
+    background-image: var(--pattern-dots);
+    background-size: 20px 20px;
+  }
+  .screen-texture-grid {
+    background-image: var(--pattern-grid);
+    background-size: 24px 24px;
+  }
+  .screen-texture-map {
+    background-image: var(--pattern-map);
+    background-size: 32px 32px;
+  }
+  .screen-texture-battle {
+    background-image: var(--pattern-diag);
+    background-size: 24px 24px;
+  }
+  .screen-texture-shop {
+    background-image: var(--pattern-radial-shop);
+    background-size: 100px 80px;
+  }
+  .screen-texture-quest {
+    background-image: var(--pattern-radial-quest);
+    background-size: 100px 80px;
+  }
+  .screen-texture-settings {
+    background-image: var(--pattern-cross);
+    background-size: 16px 16px;
+  }
+
+  /* Optional: extra noise overlay on a container (e.g. cards) */
+  .noise-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: var(--noise-svg);
+    background-size: 200px 200px;
+    pointer-events: none;
+    border-radius: inherit;
   }
 }
 
@@ -169,8 +256,8 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 8px hsl(217 91% 60% / 0.3); }
-  50% { box-shadow: 0 0 20px hsl(217 91% 60% / 0.6); }
+  0%, 100% { box-shadow: 0 0 8px hsl(173 58% 42% / 0.35); }
+  50% { box-shadow: 0 0 20px hsl(173 58% 42% / 0.6); }
 }
 
 @keyframes bounce-in {
@@ -190,6 +277,22 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
+@keyframes game-press {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+@keyframes game-appear {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes game-glow {
+  0%, 100% { box-shadow: 0 0 12px hsl(var(--primary) / 0.4); }
+  50% { box-shadow: 0 0 20px hsl(var(--primary) / 0.6); }
+}
+
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
@@ -203,11 +306,23 @@
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.4), transparent);
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.25), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
 
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
+}
+
+.animate-game-press {
+  animation: game-press 0.15s ease-out;
+}
+
+.animate-game-appear {
+  animation: game-appear 0.25s ease-out;
+}
+
+.animate-game-glow {
+  animation: game-glow 1.5s ease-in-out infinite;
 }

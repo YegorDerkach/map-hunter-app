@@ -33,7 +33,7 @@ const initialState: GameState = {
   lastLoot: [],
 };
 
-type GameAction =
+export type GameAction =
   | { type: 'LOGIN'; payload: { name: string } }
   | { type: 'COMPLETE_TUTORIAL' }
   | { type: 'GAIN_XP'; payload: number }

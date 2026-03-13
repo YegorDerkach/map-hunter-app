@@ -12,36 +12,40 @@ const gameButtonVariants = cva(
     // Base
     'inline-flex items-center justify-center gap-2 select-none',
     'font-display font-bold tracking-wide rounded-lg',
-    // Press animation
-    'transition-[box-shadow,transform] duration-75',
+    // Juice: hover lift + glow, active press + scale
+    'transition-[box-shadow,transform] duration-150 ease-out',
+    'hover:scale-[1.02] active:scale-[0.98]',
     'active:translate-y-[5px] active:shadow-none',
     // Disabled
     'disabled:opacity-50 disabled:cursor-not-allowed',
-    'disabled:active:translate-y-0 disabled:active:shadow-[inherit]',
+    'disabled:hover:scale-100 disabled:active:translate-y-0 disabled:active:scale-100 disabled:active:shadow-[inherit]',
   ].join(' '),
   {
     variants: {
       variant: {
         primary: [
-          'game-gradient-hero text-white',
-          'border-2 border-white/20',
-          'shadow-[var(--shadow-btn-primary)]',
+          'bg-primary text-primary-foreground',
+          'border-2 border-primary-foreground/25',
+          'shadow-[var(--shadow-btn-primary),inset_0_1px_0_hsl(var(--bar-highlight)/0.9)]',
+          'hover:shadow-[var(--shadow-btn-primary),inset_0_1px_0_hsl(var(--bar-highlight)/0.9),0_0_16px_hsl(var(--primary)/0.4)]',
         ].join(' '),
         danger: [
-          'bg-[hsl(var(--game-red))] text-white',
-          'border-2 border-white/20',
-          'shadow-[var(--shadow-btn-danger)]',
+          'bg-[hsl(var(--game-red))] text-primary-foreground',
+          'border-2 border-primary-foreground/25',
+          'shadow-[var(--shadow-btn-danger),inset_0_1px_0_hsl(var(--bar-highlight)/0.9)]',
+          'hover:shadow-[var(--shadow-btn-danger),inset_0_1px_0_hsl(var(--bar-highlight)/0.9),0_0_12px_hsl(var(--game-red)/0.4)]',
         ].join(' '),
         gold: [
-          'game-gradient-gold text-white',
-          'border-2 border-white/20',
-          'shadow-[var(--shadow-btn-gold)]',
+          'bg-[hsl(var(--game-amber))] text-secondary-foreground',
+          'border-2 border-secondary-foreground/25',
+          'shadow-[var(--shadow-btn-gold),inset_0_1px_0_hsl(var(--bar-highlight)/0.9)]',
+          'hover:shadow-[var(--shadow-btn-gold),inset_0_1px_0_hsl(var(--bar-highlight)/0.9),0_0_12px_hsl(var(--game-amber)/0.4)]',
         ].join(' '),
         outline: [
           'bg-card text-foreground',
           'border-2 border-border',
-          'shadow-[var(--shadow-btn-outline)]',
-          'hover:bg-muted',
+          'shadow-[var(--shadow-btn-outline),inset_0_1px_0_hsl(var(--bar-highlight)/0.5)]',
+          'hover:bg-muted hover:shadow-[var(--shadow-btn-outline),inset_0_1px_0_hsl(var(--bar-highlight)/0.5),0_0_8px_hsl(var(--border))]',
         ].join(' '),
         ghost: [
           'bg-transparent text-foreground',

@@ -28,14 +28,18 @@ export function ItemCard({ inventoryItem, onClick, selected }: ItemCardProps) {
 
   return (
     <button
+      type="button"
       onClick={onClick}
       className={cn(
-        'relative aspect-square rounded-lg border-2 border-b-[3px] p-1.5 flex flex-col items-center justify-center gap-0.5 transition-[box-shadow,transform] duration-75',
-        'shadow-[0_3px_0_hsl(var(--border))] active:translate-y-[3px] active:shadow-none hover:brightness-105',
+        'game-panel relative aspect-square p-1.5 flex flex-col items-center justify-center gap-0.5',
+        'shadow-[var(--shadow-card),var(--game-frame-inner-shadow)]',
+        'transition-[transform,box-shadow] duration-150 ease-out',
+        'hover:-translate-y-0.5 hover:shadow-[var(--shadow-card),var(--game-frame-inner-shadow),0_6px_16px_hsl(0_0%_0%/0.1)]',
+        'active:scale-[0.98] active:translate-y-0 active:shadow-[var(--shadow-card),var(--game-frame-inner-shadow)]',
         rarityBorder[item.rarity],
         rarityBg[item.rarity],
-        selected && 'ring-2 ring-primary ring-offset-1',
-        !onClick && 'cursor-default'
+        selected && 'ring-2 ring-primary ring-offset-2',
+        !onClick && 'cursor-default hover:translate-y-0'
       )}
     >
       <span className="text-2xl leading-none">{item.emoji}</span>
@@ -48,7 +52,7 @@ export function ItemCard({ inventoryItem, onClick, selected }: ItemCardProps) {
         </span>
       )}
       {equipped && (
-        <span className="absolute bottom-0.5 left-0.5 text-[8px] bg-[hsl(var(--game-green))] text-white rounded px-0.5 font-bold leading-tight">
+        <span className="absolute bottom-0.5 left-0.5 text-[8px] bg-[hsl(var(--game-green))] text-primary-foreground rounded px-0.5 font-bold leading-tight">
           E
         </span>
       )}

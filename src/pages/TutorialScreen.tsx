@@ -21,8 +21,9 @@ export default function TutorialScreen() {
   };
 
   return (
-    <div className="min-h-screen game-gradient-sky flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-[360px] flex flex-col items-center gap-6">
+    <div className="min-h-screen game-gradient-sky flex flex-col items-center justify-center p-6 relative">
+      <div className="absolute inset-0 screen-texture-paper pointer-events-none" />
+      <div className="relative z-10 w-full max-w-[360px] flex flex-col items-center gap-6">
         {/* Guide character */}
         <div
           key={step}
@@ -32,9 +33,9 @@ export default function TutorialScreen() {
         </div>
 
         {/* Speech bubble */}
-        <div className="relative w-full bg-card rounded-3xl border border-border p-6 game-shadow-card">
+        <div className="game-panel relative w-full rounded-3xl p-6">
           {/* Bubble tail */}
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[12px] border-r-[12px] border-b-[12px] border-l-transparent border-r-transparent border-b-card" />
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[12px] border-r-[12px] border-b-[12px] border-l-transparent border-r-transparent border-b-[hsl(var(--card))]" />
 
           <h2 className="font-display font-bold text-xl text-foreground text-center mb-2">
             {current.title}

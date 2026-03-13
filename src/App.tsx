@@ -20,11 +20,12 @@ import InventoryScreen from "./pages/InventoryScreen";
 import QuestScreen from "./pages/QuestScreen";
 import ShopScreen from "./pages/ShopScreen";
 import SettingsScreen from "./pages/SettingsScreen";
+import PatternsScreen from "./pages/PatternsScreen";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+  <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false}>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="/quests" element={<QuestScreen />} />
               <Route path="/shop" element={<ShopScreen />} />
               <Route path="/settings" element={<SettingsScreen />} />
+              <Route path="/patterns" element={<PatternsScreen />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

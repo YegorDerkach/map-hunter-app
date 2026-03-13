@@ -6,7 +6,7 @@ export default function NotFound() {
   const navigate = useNavigate();
 
   return (
-    <GameShell>
+    <GameShell pattern="dots">
       <div className="flex flex-col items-center justify-center flex-1 p-8 text-center">
         <div className="text-8xl mb-4 animate-float">🗺️</div>
         <h1 className="font-display font-bold text-4xl text-foreground mb-2">404</h1>

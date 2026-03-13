@@ -18,10 +18,14 @@ export function XPBar({ current, max, className, showLabel }: XPBarProps) {
           <span>{current} / {max}</span>
         </div>
       )}
-      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+      <div className="h-2.5 w-full rounded-full border-2 border-border bg-muted overflow-hidden shadow-[inset_0_2px_4px_hsl(200_25%_16%/0.1)]">
         <div
-          className="h-full rounded-full bg-primary transition-all duration-500"
-          style={{ width: `${percent}%` }}
+          className="h-full rounded-full transition-all duration-500 relative"
+          style={{
+            width: `${percent}%`,
+            background: 'linear-gradient(180deg, hsl(var(--game-cyan) / 0.9) 0%, hsl(var(--primary)) 50%, hsl(var(--game-indigo)) 100%)',
+            boxShadow: 'inset 0 1px 0 hsl(var(--bar-highlight) / 0.85)',
+          }}
         />
       </div>
     </div>

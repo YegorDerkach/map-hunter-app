@@ -1,12 +1,11 @@
 import { useNavigate } from 'react-router-dom';
-import { Music, Volume2, Bell, User, Lock, HelpCircle, LogOut, Moon } from 'lucide-react';
+import { Music, Volume2, Bell, User, Lock, HelpCircle, LogOut } from 'lucide-react';
 import { GameShell } from '@/components/game/GameShell';
 import { BackHeader } from '@/components/game/BackHeader';
 import { ScreenTransition } from '@/components/game/ScreenTransition';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useGame } from '@/context/GameContext';
-import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 
 interface SettingRowProps {
@@ -18,24 +17,30 @@ interface SettingRowProps {
 }
 
 function SettingRow({ icon, label, right, onClick, danger }: SettingRowProps) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-3 py-3.5 px-4 hover:bg-muted/50 transition-colors"
-      disabled={!onClick && !right}
-    >
-      <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center ${danger ? 'bg-[hsl(var(--game-red)/0.1)] border-[hsl(var(--game-red)/0.25)]' : 'bg-muted border-border'}`}>
+  const className =
+    'w-full flex items-center gap-3 py-3.5 px-4 rounded-lg transition-[transform,box-shadow,background-color] duration-150 ease-out hover:bg-muted/60 hover:scale-[1.01] active:scale-[0.99] active:bg-muted/80';
+  const content = (
+    <>
+      <div className={`w-9 h-9 rounded-lg border-2 flex items-center justify-center shrink-0 shadow-[0_2px_0_hsl(var(--border)),inset_0_1px_0_hsl(var(--bar-highlight)/0.6)] ${danger ? 'bg-[hsl(var(--game-red)/0.12)] border-[hsl(var(--game-red)/0.4)]' : 'bg-muted border-border'}`}>
         <span className={danger ? 'text-[hsl(var(--game-red))]' : 'text-muted-foreground'}>
           {icon}
         </span>
       </div>
-      <span className={`flex-1 text-sm font-medium text-left ${danger ? 'text-[hsl(var(--game-red))]' : 'text-foreground'}`}>
+      <span className={`flex-1 text-sm font-display font-bold text-left ${danger ? 'text-[hsl(var(--game-red))]' : 'text-foreground'}`}>
         {label}
       </span>
-      {right && <div className="shrink-0">{right}</div>}
+      {right && <div className="shrink-0" onClick={(e) => e.stopPropagation()}>{right}</div>}
       {!right && onClick && (
-        <span className="text-muted-foreground text-xs">›</span>
+        <span className="text-muted-foreground text-sm">›</span>
       )}
+    </>
+  );
+  if (right) {
+    return <div className={className}>{content}</div>;
+  }
+  return (
+    <button type="button" onClick={onClick} className={className} disabled={!onClick}>
+      {content}
     </button>
   );
 }
@@ -43,7 +48,6 @@ function SettingRow({ icon, label, right, onClick, danger }: SettingRowProps) {
 export default function SettingsScreen() {
   const { state, dispatch } = useGame();
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
   const { settings } = state;
 
   const handleLogout = () => {
@@ -52,17 +56,17 @@ export default function SettingsScreen() {
   };
 
   return (
-    <GameShell>
+    <GameShell pattern="settings">
       <BackHeader title="Settings" />
       <ScreenTransition>
         <div className="flex-1 overflow-y-auto">
           {/* Audio section */}
-          <div className="px-4 pt-4 pb-1">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 px-1">
+          <div className="px-4 pt-4 pb-2">
+            <p className="game-panel-header text-xs font-bold text-muted-foreground uppercase tracking-widest mb-0 px-1">
               Audio
             </p>
           </div>
-          <div className="bg-card rounded-lg border-2 border-b-4 border-border mx-4 overflow-hidden game-shadow-card">
+          <div className="game-panel mx-4 overflow-hidden">
             <SettingRow
               icon={<Music className="w-4 h-4" />}
               label="Music"
@@ -87,12 +91,12 @@ export default function SettingsScreen() {
           </div>
 
           {/* Notifications */}
-          <div className="px-4 pt-4 pb-1">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 px-1">
+          <div className="px-4 pt-4 pb-2">
+            <p className="game-panel-header text-xs font-bold text-muted-foreground uppercase tracking-widest mb-0 px-1">
               Notifications
             </p>
           </div>
-          <div className="bg-card rounded-lg border-2 border-b-4 border-border mx-4 overflow-hidden game-shadow-card">
+          <div className="game-panel mx-4 overflow-hidden">
             <SettingRow
               icon={<Bell className="w-4 h-4" />}
               label="Push Notifications"
@@ -105,32 +109,13 @@ export default function SettingsScreen() {
             />
           </div>
 
-          {/* Display */}
-          <div className="px-4 pt-4 pb-1">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 px-1">
-              Display
-            </p>
-          </div>
-          <div className="bg-card rounded-lg border-2 border-b-4 border-border mx-4 overflow-hidden game-shadow-card">
-            <SettingRow
-              icon={<Moon className="w-4 h-4" />}
-              label="Dark Mode"
-              right={
-                <Switch
-                  checked={theme === 'dark'}
-                  onCheckedChange={(v) => setTheme(v ? 'dark' : 'light')}
-                />
-              }
-            />
-          </div>
-
           {/* Account */}
-          <div className="px-4 pt-4 pb-1">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1 px-1">
+          <div className="px-4 pt-4 pb-2">
+            <p className="game-panel-header text-xs font-bold text-muted-foreground uppercase tracking-widest mb-0 px-1">
               Account
             </p>
           </div>
-          <div className="bg-card rounded-lg border-2 border-b-4 border-border mx-4 overflow-hidden game-shadow-card">
+          <div className="game-panel mx-4 overflow-hidden">
             <SettingRow
               icon={<User className="w-4 h-4" />}
               label="Account Details"

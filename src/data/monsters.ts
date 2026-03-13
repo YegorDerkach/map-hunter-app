@@ -82,11 +82,22 @@ export const monsters: Monster[] = [
 ];
 
 export const mapMarkers: MapMarkerData[] = [
+  // Monsters
   { id: 'm1', type: 'monster', x: 22, y: 30, label: 'Goblin Scout', monsterId: 'goblin' },
   { id: 'm2', type: 'monster', x: 65, y: 45, label: 'Shadow Wolf', monsterId: 'wolf' },
   { id: 'm3', type: 'monster', x: 40, y: 65, label: 'Baby Dragon', monsterId: 'dragon' },
+  { id: 'm4', type: 'monster', x: 15, y: 50, label: 'Bone Warrior', monsterId: 'skeleton' },
+  { id: 'm5', type: 'monster', x: 55, y: 20, label: 'Toxic Slime', monsterId: 'slime' },
+  { id: 'm6', type: 'monster', x: 80, y: 55, label: 'Dark Witch', monsterId: 'witch' },
+  { id: 'm7', type: 'monster', x: 35, y: 42, label: 'Goblin Scout', monsterId: 'goblin' },
+  { id: 'm8', type: 'monster', x: 70, y: 75, label: 'Shadow Wolf', monsterId: 'wolf' },
+  { id: 'm9', type: 'monster', x: 10, y: 18, label: 'Toxic Slime', monsterId: 'slime' },
+  { id: 'm10', type: 'monster', x: 88, y: 35, label: 'Bone Warrior', monsterId: 'skeleton' },
+  // Chests
   { id: 'c1', type: 'chest', x: 75, y: 25, label: 'Silver Chest' },
   { id: 'c2', type: 'chest', x: 18, y: 72, label: 'Old Crate' },
+  { id: 'c3', type: 'chest', x: 50, y: 85, label: 'Golden Chest' },
+  // Events
   { id: 'e1', type: 'event', x: 50, y: 38, label: 'Market Day' },
   { id: 'e2', type: 'event', x: 82, y: 68, label: 'Meteor Strike' },
 ];

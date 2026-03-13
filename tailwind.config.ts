@@ -58,6 +58,12 @@ export default {
           red: "hsl(var(--game-red))",
           yellow: "hsl(var(--game-yellow))",
           pink: "hsl(var(--game-pink))",
+          cyan: "hsl(var(--game-cyan))",
+          teal: "hsl(var(--game-teal))",
+          indigo: "hsl(var(--game-indigo))",
+          amber: "hsl(var(--game-amber))",
+          lime: "hsl(var(--game-lime))",
+          rose: "hsl(var(--game-rose))",
         },
       },
       borderRadius: {

@@ -8,4 +8,3 @@ export default function Index() {
   }, [navigate]);
   return null;
 }
-//
