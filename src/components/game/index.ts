@@ -1,4 +1,5 @@
 export { BackHeader } from './BackHeader';
+export { GameMap } from './GameMap';
 export { CategoryTabs } from './CategoryTabs';
 export { FloatingActionButton } from './FloatingActionButton';
 export { GameButton } from './GameButton';
