@@ -1,0 +1,213 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 100% 97%;
+    --foreground: 220 30% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 30% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 30% 20%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 174 72% 56%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 40% 93%;
+    --muted-foreground: 220 15% 50%;
+
+    --accent: 36 100% 57%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 30% 88%;
+    --input: 210 30% 88%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.5rem;
+
+    /* Game-specific tokens */
+    --game-orange: 24 95% 58%;
+    --game-green: 142 71% 45%;
+    --game-purple: 270 67% 60%;
+    --game-red: 0 84% 60%;
+    --game-yellow: 45 100% 55%;
+    --game-pink: 330 80% 65%;
+
+    --gradient-sky: linear-gradient(180deg, hsl(200 80% 85%), hsl(210 100% 97%));
+    --gradient-hero: linear-gradient(135deg, hsl(217 91% 60%), hsl(174 72% 56%));
+    --gradient-gold: linear-gradient(135deg, hsl(45 100% 55%), hsl(36 100% 57%));
+    --gradient-battle: linear-gradient(180deg, hsl(0 84% 60% / 0.1), hsl(270 67% 60% / 0.1));
+
+    /* Button bottom shadows (3D press effect) */
+    --shadow-btn-primary: 0 5px 0 hsl(217 91% 38%);
+    --shadow-btn-danger:  0 5px 0 hsl(0 84% 35%);
+    --shadow-btn-gold:    0 5px 0 hsl(30 90% 30%);
+    --shadow-btn-outline: 0 4px 0 hsl(210 30% 75%);
+
+    --shadow-game: 0 4px 20px hsl(217 91% 60% / 0.25);
+    --shadow-card: 0 4px 0 hsl(210 30% 80%), 0 6px 16px hsl(220 30% 20% / 0.1);
+    --shadow-button: 0 5px 0 hsl(220 30% 20% / 0.2);
+
+    --font-display: 'Fredoka', sans-serif;
+    --font-body: 'Nunito', sans-serif;
+  }
+}
+
+@layer base {
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 92%;
+
+    --card: 222 47% 12%;
+    --card-foreground: 210 40% 92%;
+
+    --popover: 222 47% 12%;
+    --popover-foreground: 210 40% 92%;
+
+    --primary: 217 91% 65%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 174 72% 45%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 222 47% 18%;
+    --muted-foreground: 215 20% 55%;
+
+    --accent: 36 100% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 217 33% 22%;
+    --input: 217 33% 22%;
+    --ring: 217 91% 65%;
+
+    --gradient-sky: linear-gradient(180deg, hsl(222 50% 14%), hsl(222 47% 8%));
+    --gradient-battle: linear-gradient(180deg, hsl(0 84% 40% / 0.15), hsl(270 67% 40% / 0.15));
+    --shadow-btn-primary: 0 5px 0 hsl(217 91% 35%);
+    --shadow-btn-danger:  0 5px 0 hsl(0 84% 28%);
+    --shadow-btn-gold:    0 5px 0 hsl(30 90% 22%);
+    --shadow-btn-outline: 0 4px 0 hsl(217 33% 16%);
+
+    --shadow-game: 0 4px 20px hsl(217 91% 60% / 0.4);
+    --shadow-card: 0 4px 0 hsl(217 33% 16%), 0 6px 20px hsl(0 0% 0% / 0.35);
+    --shadow-button: 0 5px 0 hsl(0 0% 0% / 0.45);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@layer utilities {
+  .game-gradient-sky {
+    background: var(--gradient-sky);
+  }
+  .game-gradient-hero {
+    background: var(--gradient-hero);
+  }
+  .game-gradient-gold {
+    background: var(--gradient-gold);
+  }
+  .game-shadow {
+    box-shadow: var(--shadow-game);
+  }
+  .game-shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .game-shadow-button {
+    box-shadow: var(--shadow-button);
+  }
+  .game-text-stroke {
+    -webkit-text-stroke: 1px hsl(220 30% 20% / 0.1);
+  }
+  /* Card with hard bottom border (pixel game feel) */
+  .game-card {
+    border-width: 2px;
+    border-bottom-width: 4px;
+    box-shadow: var(--shadow-card);
+  }
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px hsl(217 91% 60% / 0.3); }
+  50% { box-shadow: 0 0 20px hsl(217 91% 60% / 0.6); }
+}
+
+@keyframes bounce-in {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.5s ease-out;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.4), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
