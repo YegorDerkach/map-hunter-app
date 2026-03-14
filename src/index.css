@@ -173,6 +173,40 @@
     margin-bottom: 0.5rem;
   }
 
+  /* Chat bubble – cloud shape, rounded corners, tail in bottom-left corner */
+  .chat-bubble {
+    position: relative;
+    border-width: var(--game-frame-border);
+    border-style: solid;
+    border-color: hsl(var(--border));
+    border-radius: 1rem;
+    box-shadow: var(--shadow-card), var(--game-frame-inner-shadow);
+    background-color: hsl(var(--card));
+  }
+  /* Tail sticking out from bottom-left corner, pointing toward character */
+  .chat-bubble::before {
+    content: '';
+    position: absolute;
+    left: -10px;
+    bottom: 14px;
+    width: 0;
+    height: 0;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-right: 10px solid hsl(var(--border));
+  }
+  .chat-bubble::after {
+    content: '';
+    position: absolute;
+    left: -7px;
+    bottom: 16px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid hsl(var(--card));
+  }
+
   /* Strip = same style as map StatusBar (top bar) */
   .game-strip {
     border-width: var(--game-frame-border);

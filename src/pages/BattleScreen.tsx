@@ -52,19 +52,6 @@ export default function BattleScreen() {
 
   const isPlayerTurn = battle?.turn === 'player';
 
-  const handleAttack = () => {
-    if (!battle || !isPlayerTurn) return;
-    const baseDmg = Math.max(1, state.player.attack - battle.monster.defense / 2);
-    const dmg = Math.floor(baseDmg * (0.85 + Math.random() * 0.3));
-    dispatch({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount: dmg } });
-  };
-
-  const handleSkill = () => {
-    if (!battle || !isPlayerTurn) return;
-    const dmg = Math.floor(state.player.attack * 1.5);
-    dispatch({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount: dmg } });
-  };
-
   const handleItem = () => {
     if (!battle || !isPlayerTurn) return;
     dispatch({ type: 'HEAL_PLAYER', payload: 50 });
@@ -79,10 +66,12 @@ export default function BattleScreen() {
 
   return (
     <GameShell pattern="battle">
-      <ScreenTransition className="p-4 gap-4">
+      <ScreenTransition className="p-0 gap-2 flex flex-col min-h-0 flex-1 relative">
+        {/* Game content — stretches to fill rest of screen */}
+        <div className="flex-1 min-h-0 flex flex-col gap-2">
         {/* Enemy info */}
-        <div className="game-panel border-l-4 border-l-[hsl(var(--game-red))] bg-gradient-to-r from-[hsl(var(--game-red)/0.08)] to-card p-4">
-          <div className="flex items-center gap-3 mb-3">
+        <div className="game-panel border-l-4 border-l-[hsl(var(--game-red))] bg-gradient-to-r from-[hsl(var(--game-red)/0.08)] to-card p-2">
+          <div className="flex items-center gap-2 mb-1">
             <div className="w-14 h-14 rounded-lg border-2 border-border bg-muted flex items-center justify-center text-4xl shadow-[0_2px_0_hsl(var(--border)),inset_0_1px_0_hsl(var(--bar-highlight)/0.6)]">
               {monster.emoji}
             </div>
@@ -102,8 +91,8 @@ export default function BattleScreen() {
           </div>
         </div>
 
-        {/* Battle arena */}
-        <div className="game-panel flex-1 rounded-xl border-2 border-dashed border-border bg-[var(--gradient-battle)] flex flex-col items-center justify-center gap-4 min-h-[220px] py-6 relative overflow-hidden">
+        {/* Battle arena — shrinks when needed so gaps between blocks are always kept */}
+        <div className="game-panel flex-1 min-h-[140px] sm:min-h-[200px] rounded-xl border-2 border-dashed border-border bg-[var(--gradient-battle)] flex flex-col items-center justify-center gap-2 py-2 relative overflow-hidden shrink">
           <div
             className="absolute inset-0 opacity-5"
             style={{ background: 'var(--gradient-battle)' }}
@@ -118,66 +107,51 @@ export default function BattleScreen() {
         </div>
 
         {/* Player HP */}
-        <div className="game-panel p-3">
+        <div className="game-panel p-2">
           <HPBar
             current={battle?.playerHp ?? state.player.hp}
             max={state.player.maxHp}
             label="Your HP"
           />
         </div>
-
-        {/* Last battle log entry */}
-        {battle && battle.log.length > 0 && (
-          <div className="game-panel bg-muted/30 px-3 py-2 max-h-16 overflow-hidden">
-            <p className="text-xs text-muted-foreground text-center">
-              {battle.log[battle.log.length - 1]}
-            </p>
-          </div>
-        )}
-
-        {/* Secondary actions */}
-        <div className="grid grid-cols-3 gap-2">
-          <GameButton
-            variant="outline"
-            size="sm"
-            onClick={handleItem}
-            disabled={!isPlayerTurn}
-            className="flex-col gap-1 h-14"
-          >
-            <span>🧪</span>
-            <span className="text-xs">Item</span>
-          </GameButton>
-          <GameButton
-            variant="primary"
-            size="sm"
-            onClick={handleSkill}
-            disabled={!isPlayerTurn}
-            className={`flex-col gap-1 h-14 ${isPlayerTurn ? 'animate-game-glow' : ''}`}
-          >
-            <span>✨</span>
-            <span className="text-xs">Skill</span>
-          </GameButton>
-          <GameButton
-            variant="danger"
-            size="sm"
-            onClick={handleEscape}
-            className="flex-col gap-1 h-14"
-          >
-            <span>🏃</span>
-            <span className="text-xs">Escape</span>
-          </GameButton>
         </div>
 
-        {/* Primary attack */}
-        <GameButton
-          variant="danger"
-          size="lg"
-          fullWidth
-          onClick={handleAttack}
-          disabled={!isPlayerTurn}
-        >
-          ⚔️ {isPlayerTurn ? 'Attack!' : 'Enemy turn...'}
-        </GameButton>
+        {/* Bottom row: pressed to bottom; chat panel stretches down to buttons */}
+        <div className="flex w-full gap-2 items-stretch mt-auto">
+          {/* Helper image: aspect 3:5, small inset so image and border aren't clipped */}
+          <div className="w-1/4 min-w-0 flex justify-center items-center self-stretch min-h-0 py-0.5">
+            <div className="h-full max-w-full max-h-full aspect-[3/5] flex-shrink-0">
+              <img src="/helper.jpg" alt="" className="w-full h-full object-cover object-center rounded-lg border-2 border-border shadow-[0_2px_0_hsl(var(--border))]" />
+            </div>
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col gap-2 min-h-0">
+            {/* Chat bubble — cloud from the character image */}
+            <div className="chat-bubble flex-1 min-h-0 pl-4 pr-3 pt-8 pb-2 flex flex-col relative ml-1">
+              <div className="absolute top-1 right-1 game-panel px-1.5 py-0.5 leading-none shrink-0">
+                <span className="text-xs font-display font-bold text-muted-foreground">Чат</span>
+              </div>
+              <div className="flex-1 min-w-0 flex items-center justify-center overflow-hidden">
+                <p className="text-sm text-muted-foreground font-display text-center max-w-full break-words line-clamp-3">
+                  Бій • Обери дію або використай предмет
+                </p>
+              </div>
+            </div>
+            {/* Buttons: fixed at bottom */}
+            <div className="game-panel h-12 p-1.5 flex items-stretch gap-2 shrink-0">
+              <GameButton variant="danger" size="sm" onClick={handleEscape} className="shadow-lg flex-1 min-w-0 flex items-center justify-center gap-1">
+                Втекти
+              </GameButton>
+              <GameButton
+                variant="outline"
+                size="sm"
+                onClick={handleItem}
+                disabled={!isPlayerTurn}
+                className="flex-1 min-w-0 flex-col gap-0.5 flex items-center justify-center">
+                Предмет
+              </GameButton>
+            </div>
+          </div>
+        </div>
       </ScreenTransition>
     </GameShell>
   );
