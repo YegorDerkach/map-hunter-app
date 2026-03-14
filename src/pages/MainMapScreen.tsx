@@ -25,6 +25,9 @@ export default function MainMapScreen() {
     forceUpdate((n) => n + 1);
   }, []);
 
+
+
+
   return (
     <GameShell pattern="map">
       {/* Map fills entire screen; UI is overlaid */}

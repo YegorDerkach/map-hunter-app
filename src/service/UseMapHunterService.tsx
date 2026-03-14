@@ -5,46 +5,99 @@ const MapHunterService = () => {
     const { request, loading, error, clearError } = useHttp()
 
 
-    const data = {
-        model: "gpt-4.1-mini",
-        messages: [
-            {
-                role: "system",
-                content: "Your answers should be short, 2-3 sentences maximum"
-            },
-            {
-                role: "user",
-                content: "monsters for a fantasy map game"
-            }
-        ]
-    }
-
-    const AiChating = async () => {
-        const res = await request(API.AiChating, "POST", data)
-        return await res;
-    }
 
     // email,name,password
-    const Registration = async(data: object) =>{
+    const Registration = async (data: object) => {
         const res = await request(API.Registration, "POST", data)
         return await res;
     }
     // email, password 
-    const LoggingIn = async (data : object) =>{
+    const LoggingIn = async (data: object) => {
         const res = await request(API.LoggingIn, "POST", data)
         return await res;
     }
     // file
-    const PostFile = async (data : File) =>{
+    const PostFile = async (data: File) => {
         const res = await request(API.PostFile, "POST", data)
         return await res;
     }
 
+    const PostPhoto = async (data: File) => {
+        const res = await request(API.Photo, 'POST', data)
+        return await res
+    }
+
+    const PostItem = async (data: object) => {
+        const res = await request(API.Items, 'POST', data)
+        return await res
+    }
+
+    const PostProfile = async (data: object) => {
+        const res = await request(API.Profile, 'POST', data)
+        return await res
+    }
+
+    const PostCreate = async (data: object) => {
+        const res = await request(API.Create, 'POST', data)
+        return await res;
+    }
+
+    const PostCreateEnemy = async (data: object) => {
+        const res = await request(API.CreateEnemy, 'POST', data)
+        return await res;
+    }
+
+    const CityEnemy = async () => {
+        const res = await request(API.CityEnemy)
+        return await res;
+    }
+
+    const EnemyKill = async (data: object) => {
+        const res = await request(API.EnemyKill, 'POST', data)
+        return await res;
+    } 
+
+    const PostBattlePhoto = async (data: File) => {
+        const res = await request(API.BattlePhoto, 'POST', data)
+        return await res
+    } 
+
+    const AiAsk = async (data: object) => {
+        const res = await request(API.AskAi, 'POST', data)
+        return await res;
+    } 
+
+    const GetPhotoProfile = async () => {
+        const res = await request(API.PhotoProfile)
+        return await res;
+    }
+
+    const PostPhotoUpload = async (data: object) => {
+        const res = await request(API.PhotoUpload, 'POST', data)
+        return await res;
+    } 
 
 
 
-
-    return { AiChating,Registration,LoggingIn, loading, error, clearError, PostFile}
+    return {
+        Registration,
+        LoggingIn,
+        loading,
+        error,
+        clearError,
+        PostFile,
+        PostPhoto,
+        PostItem,
+        PostProfile,
+        PostCreate,
+        PostCreateEnemy,
+        CityEnemy,
+        EnemyKill,
+        PostBattlePhoto,
+        AiAsk,
+        GetPhotoProfile,
+        PostPhotoUpload
+    }
 }
 
 export default MapHunterService;
