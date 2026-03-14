@@ -10,7 +10,8 @@ import { monsters } from '@/data/monsters';
 import { items } from '@/data/items';
 // import { createDodgeGame, DAMAGE_PER_HIT } from '@/games'; // Game 1 — disabled
 // import { createArrowGame, DAMAGE_PER_MISS } from '@/games'; // Game 2 — disabled
-import { createPairsGame } from '@/games';
+// import { createPairsGame } from '@/games'; // Game 3 — disabled
+import { createTicTacToeGame } from '@/games'; // Game 4
 import type { MiniGame } from '@/games';
 
 const ENEMY_ATTACK_DELAY_MS = 700;
@@ -183,7 +184,7 @@ export default function BattleScreen() {
           className={gameActive ? 'relative z-30' : undefined}
           onMiniGameReady={(app) => {
             miniGameRef.current?.destroy();
-            miniGameRef.current = createPairsGame(
+            miniGameRef.current = createTicTacToeGame(
               app,
               () => { setGameActive(false); },
               {
