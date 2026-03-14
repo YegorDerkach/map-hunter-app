@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GameShell } from '@/components/game/GameShell';
 import { BackHeader } from '@/components/game/BackHeader';
@@ -8,7 +8,7 @@ import { ScreenTransition } from '@/components/game/ScreenTransition';
 import { CameraCapture } from '@/components/game/CameraCapture';
 import { useGame } from '@/context/GameContext';
 import { useT } from '@/i18n/useT';
-import { generateBattle, getEnemyPhotoUrl } from '@/api';
+import { generateBattle } from '@/api';
 import { verifyLocation } from '@/api/enemy';
 import { useLocationMarker } from '@/hooks/useLocationMarker';
 import { items } from '@/data/items';
@@ -51,14 +51,7 @@ export default function LocationInteractionScreen() {
   const [distanceMeters, setDistanceMeters] = useState<number | null>(null);
   const [verifyMessage, setVerifyMessage] = useState('');
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [enemyPhotoUrl, setEnemyPhotoUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!serverEnemy?.pathToPhoto) return;
-    getEnemyPhotoUrl(serverEnemy.id)
-      .then((url) => setEnemyPhotoUrl(url || null))
-      .catch(() => setEnemyPhotoUrl(null));
-  }, [serverEnemy?.id, serverEnemy?.pathToPhoto]);
+  const enemyPhotoUrl = serverEnemy?.pathToPhoto ?? null;
 
   if (loading && !marker) {
     return (

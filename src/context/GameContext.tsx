@@ -195,6 +195,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         log: [`Battle started against ${enemy.name}!`],
         serverEnemyId: enemy.id,
         isBoss: enemy.isBoss,
+        enemyPhotoUrl: enemy.pathToPhoto || undefined,
       };
       return { ...state, activeBattle: battle };
     }

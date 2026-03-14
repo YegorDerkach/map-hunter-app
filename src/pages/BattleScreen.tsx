@@ -6,7 +6,7 @@ import { GameButton } from '@/components/game/GameButton';
 import { ScreenTransition } from '@/components/game/ScreenTransition';
 import { BattleArea } from '@/components/game/BattleArea';
 import { useGame } from '@/context/GameContext';
-import { endBattle, killEnemy, getEnemyPhotoUrl } from '@/api';
+import { endBattle, killEnemy } from '@/api';
 import { monsters } from '@/data/monsters';
 import { items } from '@/data/items';
 import {
@@ -48,7 +48,6 @@ export default function BattleScreen() {
   const { state, dispatch } = useGame();
   const [gameActive, setGameActive] = useState(false);
   const [dpadRect, setDpadRect] = useState<{ top: number; left: number; size: number } | null>(null);
-  const [enemyPhotoUrl, setEnemyPhotoUrl] = useState<string | null>(null);
   const miniGameRef    = useRef<MiniGame | null>(null);
   const playerHpRef    = useRef<HTMLDivElement>(null);
   const dispatchRef    = useRef(dispatch);
@@ -57,15 +56,6 @@ export default function BattleScreen() {
 
   // Destroy game on unmount to prevent ticker running after navigation
   useEffect(() => () => { miniGameRef.current?.destroy(); }, []);
-
-  // Fetch enemy photo URL if server enemy has a photo
-  useEffect(() => {
-    const enemyId = state.activeBattle?.serverEnemyId;
-    if (!enemyId) return;
-    getEnemyPhotoUrl(enemyId)
-      .then((url) => setEnemyPhotoUrl(url || null))
-      .catch(() => setEnemyPhotoUrl(null));
-  }, [state.activeBattle?.serverEnemyId]);
 
   // D-pad: size from screen, then centered between bottom of player HP bar and bottom of screen
   useEffect(() => {
@@ -180,8 +170,8 @@ export default function BattleScreen() {
         <div className="game-panel border-l-4 border-l-[hsl(var(--game-red))] bg-gradient-to-r from-[hsl(var(--game-red)/0.08)] to-card p-2 relative z-30">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-14 h-14 rounded-lg border-2 border-border bg-muted flex items-center justify-center text-4xl overflow-hidden shadow-[0_2px_0_hsl(var(--border)),inset_0_1px_0_hsl(var(--bar-highlight)/0.6)]">
-              {enemyPhotoUrl ? (
-                <img src={enemyPhotoUrl} alt="" className="w-full h-full object-cover" />
+              {battle?.enemyPhotoUrl ? (
+                <img src={battle.enemyPhotoUrl} alt="" className="w-full h-full object-cover" />
               ) : (
                 monster.emoji
               )}

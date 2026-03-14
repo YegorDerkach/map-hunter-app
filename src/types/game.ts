@@ -114,6 +114,8 @@ export interface BattleState {
   serverEnemyId?: string;
   /** When true, use only game 4 (boss minigame) */
   isBoss?: boolean;
+  /** Signed GCS URL for the enemy photo, propagated from Enemy.pathToPhoto */
+  enemyPhotoUrl?: string;
 }
 
 export interface GameSettings {
