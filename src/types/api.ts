@@ -124,3 +124,17 @@ export interface ChatMessageEntity {
   content: string;
   timestamp: string; // ISO date string
 }
+
+export interface BattleStateDTO {
+  battleId: string;
+  playerHp: number;
+  enemyHp: number;
+  battleLog: string[];
+  isOver: boolean;
+  win: boolean;
+}
+
+export interface VerifyLocationResponse {
+  canInteract: boolean;
+  message: string;
+}

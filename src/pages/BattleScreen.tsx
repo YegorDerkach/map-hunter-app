@@ -195,11 +195,11 @@ export default function BattleScreen() {
             style={{ top: dpadRect.top, left: dpadRect.left, width: dpadRect.size, height: dpadRect.size }}
           >
             <div className="grid gap-1 w-full h-full pointer-events-auto" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, 1fr)' }}>
-              <div /><DPadBtn symbol="↑" dir="up"    color="#44ee88" onHit={() => miniGameRef.current?.hitDirection?.('up')}    /><div />
+              <div style={{ pointerEvents: 'none' }} /><DPadBtn symbol="↑" dir="up"    color="#44ee88" onHit={() => miniGameRef.current?.hitDirection?.('up')}    /><div style={{ pointerEvents: 'none' }} />
               <DPadBtn symbol="←" dir="left"  color="#44aaff" onHit={() => miniGameRef.current?.hitDirection?.('left')}  />
-              <div />
+              <div style={{ pointerEvents: 'none' }} />
               <DPadBtn symbol="→" dir="right" color="#ff8822" onHit={() => miniGameRef.current?.hitDirection?.('right')} />
-              <div /><DPadBtn symbol="↓" dir="down"  color="#ff4466" onHit={() => miniGameRef.current?.hitDirection?.('down')}  /><div />
+              <div style={{ pointerEvents: 'none' }} /><DPadBtn symbol="↓" dir="down"  color="#ff4466" onHit={() => miniGameRef.current?.hitDirection?.('down')}  /><div style={{ pointerEvents: 'none' }} />
             </div>
           </div>
         )}
@@ -296,7 +296,7 @@ export default function BattleScreen() {
               </div>
             </div>
             {/* Buttons: fixed at bottom */}
-            <div className="game-panel h-12 p-1.5 flex items-stretch gap-2 shrink-0">
+            <div className="game-panel min-h-12 py-2 px-1.5 flex items-stretch gap-2 shrink-0">
               <GameButton variant="danger" size="sm" onClick={handleEscape} className="shadow-lg flex-1 min-w-0 flex items-center justify-center gap-1">
                 {t('battle_escape')}
               </GameButton>

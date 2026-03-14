@@ -37,8 +37,7 @@ export function MiniGameCanvas({ onReady, className }: MiniGameCanvasProps) {
       .then(() => {
         initialized = true;
         if (!mounted) {
-          app.canvas?.remove();
-          app.destroy();
+          app.destroy(true);
           return;
         }
         el.appendChild(app.canvas);
@@ -52,8 +51,7 @@ export function MiniGameCanvas({ onReady, className }: MiniGameCanvasProps) {
       mounted = false;
       appRef.current = null;
       if (initialized) {
-        app.canvas?.remove();
-        app.destroy();
+        app.destroy(true);
       }
     };
   }, []);

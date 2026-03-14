@@ -5,6 +5,12 @@
 @tailwind utilities;
 
 @layer base {
+  /* Eliminate 300ms tap delay on iOS and Android */
+  button, a, [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   :root {
     /* Colorful warm/teal palette – no white, rich cream & teal */
     --background: 38 32% 90%;

@@ -137,12 +137,24 @@ const LOCATION_ERROR_MESSAGE =
   'Location is blocked. To enable: click the lock or tune icon next to the URL → Site settings → Location → Allow.';
 
 const LOCATION_UNAVAILABLE_MESSAGE =
-  'Location could not be determined (e.g. indoors or weak signal). Try again or move to an area with better reception.';
+  'Location could not be determined. On Mac: System Settings → Privacy & Security → Location Services → enable for this browser. You can still use the map centered on Kyiv.';
+
+/** Desktop often fails with kCLErrorLocationUnknown; use shorter timeout to fail fast and avoid console spam. */
+function isLikelyDesktop(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return navigator.maxTouchPoints === 0 && !/Android|webOS|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
 
 const LOCATION_OPTIONS: PositionOptions = {
   enableHighAccuracy: true,
   timeout: 15000,
   maximumAge: 60000,
+};
+
+const LOCATION_OPTIONS_DESKTOP: PositionOptions = {
+  enableHighAccuracy: false,
+  timeout: 6000,
+  maximumAge: 300000,
 };
 
 const LOCATION_OPTIONS_FALLBACK: PositionOptions = {
@@ -172,7 +184,12 @@ function MapRenderer({
   const requestLocation = useCallback(
     (useFallback = false) => {
       if (!mapInstance) return;
-      const options = useFallback ? LOCATION_OPTIONS_FALLBACK : LOCATION_OPTIONS;
+      const onDesktop = isLikelyDesktop();
+      const options = useFallback
+        ? LOCATION_OPTIONS_FALLBACK
+        : onDesktop
+          ? LOCATION_OPTIONS_DESKTOP
+          : LOCATION_OPTIONS;
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -182,8 +199,8 @@ function MapRenderer({
           mapInstance.setZoom(DEFAULT_ZOOM);
         },
         (err: GeolocationPositionError) => {
-          if (!useFallback && (err.code === 2 || err.code === 3)) {
-            window.setTimeout(() => requestLocation(true), 2000);
+          if (!onDesktop && !useFallback && (err.code === 2 || err.code === 3)) {
+            window.setTimeout(() => requestLocation(true), 3000);
             return;
           }
           handleLocationError(err);
@@ -211,6 +228,7 @@ function MapRenderer({
     if (mapInstance) {
       requestLocation();
     } else {
+      const options = isLikelyDesktop() ? LOCATION_OPTIONS_DESKTOP : LOCATION_OPTIONS;
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -218,7 +236,7 @@ function MapRenderer({
           setLocationError(null);
         },
         handleLocationError,
-        LOCATION_OPTIONS,
+        options,
       );
     }
   }, [mapInstance, handleLocationError, requestLocation]);
@@ -249,9 +267,10 @@ function MapRenderer({
     return () => { clearTimeout(t); window.removeEventListener('resize', trigger); };
   }, [mapInstance]);
 
-  // Request real GPS on mount when not using stub (uses retry on unavailable/timeout)
+  // Request real GPS on mount when not using stub (skip on desktop to avoid CoreLocation spam)
   useEffect(() => {
     if (GPS_STUB || !mapInstance) return;
+    if (isLikelyDesktop()) return;
     if (!navigator.geolocation) {
       setLocationError('unavailable');
       return;
@@ -268,14 +287,29 @@ function MapRenderer({
           <p className="flex-1 text-xs text-amber-900">
             {locationError === 'denied' ? LOCATION_ERROR_MESSAGE : LOCATION_UNAVAILABLE_MESSAGE}
           </p>
-          <button
-            type="button"
-            aria-label="Dismiss"
-            className="shrink-0 rounded p-1 text-amber-700 hover:bg-amber-200/50"
-            onClick={() => setLocationBannerDismissed(true)}
-          >
-            ✕
-          </button>
+          <div className="shrink-0 flex items-center gap-1">
+            {locationError !== 'denied' && (
+              <button
+                type="button"
+                className="rounded px-2 py-1 text-xs font-medium text-amber-800 bg-amber-200/70 hover:bg-amber-300/80"
+                onClick={() => {
+                  setLocationBannerDismissed(false);
+                  setLocationError(null);
+                  requestLocation();
+                }}
+              >
+                Try again
+              </button>
+            )}
+            <button
+              type="button"
+              aria-label="Dismiss"
+              className="rounded p-1 text-amber-700 hover:bg-amber-200/50"
+              onClick={() => setLocationBannerDismissed(true)}
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
       <GoogleMap
