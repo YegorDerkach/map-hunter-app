@@ -179,8 +179,12 @@ export default function BattleScreen() {
         {/* Enemy info — above overlay (z-30) so HP is visible during minigame */}
         <div className="game-panel border-l-4 border-l-[hsl(var(--game-red))] bg-gradient-to-r from-[hsl(var(--game-red)/0.08)] to-card p-2 relative z-30">
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-14 h-14 rounded-lg border-2 border-border bg-muted flex items-center justify-center text-4xl shadow-[0_2px_0_hsl(var(--border)),inset_0_1px_0_hsl(var(--bar-highlight)/0.6)]">
-              {monster.emoji}
+            <div className="w-14 h-14 rounded-lg border-2 border-border bg-muted flex items-center justify-center text-4xl overflow-hidden shadow-[0_2px_0_hsl(var(--border)),inset_0_1px_0_hsl(var(--bar-highlight)/0.6)]">
+              {enemyPhotoUrl ? (
+                <img src={enemyPhotoUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                monster.emoji
+              )}
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
