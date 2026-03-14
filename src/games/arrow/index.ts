@@ -2,10 +2,10 @@ import { Application, Container, Graphics, Text, Ticker } from 'pixi.js';
 import type { MiniGame, MiniGameEndCallback, MiniGameOptions } from '../types';
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const LANE_COUNT        = 4;
-const HITS_PER_ROUND    = 5;
-const TOTAL_GAME_SECS   = 60;
-const BETWEEN_SECS      = 2.5;
+const LANE_COUNT         = 4;
+const HITS_PER_ROUND     = 5;
+const TOTAL_GAME_SECS    = 60;
+const BETWEEN_SECS       = 2.5;
 const LOW_TIME_THRESHOLD = 10;
 const REFERENCE_DURATION = 20;
 
@@ -23,7 +23,7 @@ type Direction = typeof DIRECTIONS[number];
 type Phase = 'playing' | 'between' | 'done';
 
 const DIR_SYMBOL: Record<Direction, string> = { left: '←', right: '→', up: '↑', down: '↓' };
-const DIR_COLOR: Record<Direction, number> = {
+const DIR_COLOR:  Record<Direction, number> = {
   left:  0x44aaff,
   right: 0xff8822,
   up:    0x44ee88,
@@ -36,15 +36,8 @@ const DIR_KEYS: Record<Direction, string[]> = {
   down:  ['ArrowDown',  's', 'S'],
 };
 
-type ArrowObj = {
-  gfx: Container;
-  label: Text;
-  dir: Direction;
-  active: boolean;
-  hitTimer: number;
-  consumed: boolean;
-};
-type Particle = { gfx: Graphics; vx: number; vy: number; life: number; maxLife: number };
+type ArrowObj  = { gfx: Container; label: Text; dir: Direction; active: boolean; hitTimer: number; consumed: boolean };
+type Particle  = { gfx: Graphics; vx: number; vy: number; life: number; maxLife: number };
 type FloatText = { gfx: Text; vy: number; life: number; maxLife: number };
 
 // ── Factory ───────────────────────────────────────────────────────────────────
@@ -53,15 +46,14 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
   const onRoundComplete = options?.onRoundComplete;
   const onFalseHit      = options?.onFalseHit;
 
-  const W = app.screen.width;
-  const H = app.screen.height;
-  const canvas = app.canvas as HTMLCanvasElement;
+  const W    = app.screen.width;
+  const H    = app.screen.height;
   const colW = W / LANE_COUNT;
 
-  const ARROW_FONT  = Math.max(18, H * 0.11);
-  const HIT_ZONE_H  = Math.max(34, H * 0.16);
-  const HIT_ZONE_Y  = H - HIT_ZONE_H - Math.max(6, H * 0.03);
-  const HUD_SIZE    = Math.max(10, H * 0.06);
+  const ARROW_FONT = Math.max(18, H * 0.11);
+  const HIT_ZONE_H = Math.max(34, H * 0.16);
+  const HIT_ZONE_Y = H - HIT_ZONE_H - Math.max(6, H * 0.03);
+  const HUD_SIZE   = Math.max(10, H * 0.06);
 
   // ── Layers ─────────────────────────────────────────────────────────────────
   const bgLayer      = new Container();
@@ -76,17 +68,14 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
     const dir = DIRECTIONS[i];
     const col = DIR_COLOR[dir];
 
-    // Lane tint
     bgLayer.addChild(new Graphics().rect(i * colW, 0, colW, H).fill({ color: col, alpha: 0.04 }));
 
-    // Lane divider
     if (i > 0) {
       bgLayer.addChild(
         new Graphics().moveTo(i * colW, 0).lineTo(i * colW, H).stroke({ color: 0xffffff, alpha: 0.08, width: 1 }),
       );
     }
 
-    // Hit zone border + fill
     bgLayer.addChild(
       new Graphics()
         .rect(i * colW + 3, HIT_ZONE_Y - 2, colW - 6, HIT_ZONE_H + 4)
@@ -94,13 +83,13 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
         .stroke({ color: col, alpha: 0.4, width: 2 }),
     );
 
-    // Ghost icon in hit zone
-    const ghost = new Text({ text: DIR_SYMBOL[dir], style: { fontSize: ARROW_FONT * 0.85, fill: col, alpha: 0.18 } });
+    // Ghost icon — alpha must be set on the object, not inside TextStyle (Pixi v8)
+    const ghost = new Text({ text: DIR_SYMBOL[dir], style: { fontSize: ARROW_FONT * 0.85, fill: col } });
+    ghost.alpha = 0.18;
     ghost.anchor.set(0.5, 0.5);
     ghost.x = i * colW + colW / 2;
     ghost.y = HIT_ZONE_Y + HIT_ZONE_H / 2;
     bgLayer.addChild(ghost);
-
   }
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -113,11 +102,15 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
   let totalMisses    = 0;
   let roundHits      = 0;
   let roundMisses    = 0;
-  let spawnCD        = 0.3; // slight delay before first arrow
-  let hitFlashTimer  = 0;
+  let spawnCD        = 0.3;
 
-  const arrows:     ArrowObj[] = [];
-  const particles:  Particle[] = [];
+  // Flash state: track duration + peak alpha together so fade is always correct
+  let hitFlashTimer    = 0;
+  let hitFlashDuration = 0;
+  let hitFlashPeak     = 0;
+
+  const arrows:     ArrowObj[]  = [];
+  const particles:  Particle[]  = [];
   const floatTexts: FloatText[] = [];
 
   // ── VFX helpers ────────────────────────────────────────────────────────────
@@ -130,7 +123,7 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
 
   const hitBurst = (x: number, y: number, color: number) => {
     for (let i = 0; i < 12; i++) {
-      const a = (Math.PI * 2 * i) / 12 + Math.random() * 0.5;
+      const a   = (Math.PI * 2 * i) / 12 + Math.random() * 0.5;
       const spd = 55 + Math.random() * 90;
       addParticle(x, y, color, 2 + Math.random() * 3.5, Math.cos(a) * spd, Math.sin(a) * spd, 0.4 + Math.random() * 0.25);
     }
@@ -143,6 +136,14 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
     t.x = x; t.y = y;
     vfxLayer.addChild(t);
     floatTexts.push({ gfx: t, vy: -55, life: 0.65, maxLife: 0.65 });
+  };
+
+  const triggerFlash = (peak: number, duration: number) => {
+    hitFlashPeak     = peak;
+    hitFlashDuration = duration;
+    hitFlashTimer    = duration;
+    hitFlashGfx.visible = true;
+    hitFlashGfx.alpha   = peak;
   };
 
   // ── HUD ────────────────────────────────────────────────────────────────────
@@ -158,15 +159,14 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
   const missTxt = makeHud('💥 0', 0xff5555);
   missTxt.anchor.set(0.5, 0); missTxt.x = W / 2; missTxt.y = 4; hudLayer.addChild(missTxt);
 
-  const roundTxt = makeHud('Round 1/3', 0xaaddff);
+  const roundTxt = makeHud(`Round 1/${ROUNDS.length}`, 0xaaddff);
   roundTxt.anchor.set(0.5, 0); roundTxt.x = W / 2; roundTxt.y = HUD_SIZE + 8; hudLayer.addChild(roundTxt);
 
-  // ── Hit flash overlay ──────────────────────────────────────────────────────
+  // ── Overlays ───────────────────────────────────────────────────────────────
   const hitFlashGfx = new Graphics().rect(0, 0, W, H).fill({ color: 0xff2200, alpha: 0 });
   hitFlashGfx.visible = false;
   overlayLayer.addChild(hitFlashGfx);
 
-  // ── Between-round overlay ──────────────────────────────────────────────────
   const overlayBg    = new Graphics().rect(0, 0, W, H).fill({ color: 0x000022, alpha: 0.65 });
   const overlayTitle = makeHud('', 0xffffff);
   const overlayStats = makeHud('', 0xffdd44);
@@ -177,10 +177,9 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
 
   // ── Arrow factory ──────────────────────────────────────────────────────────
   const spawnArrow = () => {
-    const lane = Math.floor(Math.random() * LANE_COUNT);
-    const dir  = DIRECTIONS[lane];
-    const col  = DIR_COLOR[dir];
-
+    const lane  = Math.floor(Math.random() * LANE_COUNT);
+    const dir   = DIRECTIONS[lane];
+    const col   = DIR_COLOR[dir];
     const c     = new Container();
     const label = new Text({ text: DIR_SYMBOL[dir], style: { fontSize: ARROW_FONT, fill: col, fontWeight: '800' } });
     label.anchor.set(0.5, 0.5);
@@ -188,7 +187,6 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
     c.x = lane * colW + colW / 2;
     c.y = -ARROW_FONT;
     arrowLayer.addChild(c);
-
     arrows.push({ gfx: c, label, dir, active: false, hitTimer: 0, consumed: false });
   };
 
@@ -214,8 +212,8 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
     spawnCD = 0.3;
     phase = 'playing';
     overlayBg.visible = overlayTitle.visible = overlayStats.visible = false;
-    roundTxt.text = `Round ${idx + 1}/3`;
-    hitsTxt.text = `✓ 0/${HITS_PER_ROUND}`;
+    roundTxt.text = `Round ${idx + 1}/${ROUNDS.length}`;
+    hitsTxt.text  = `✓ 0/${HITS_PER_ROUND}`;
   };
 
   // ── Miss / hit logic ───────────────────────────────────────────────────────
@@ -224,9 +222,7 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
     a.consumed = true;
     roundMisses++; totalMisses++;
     missTxt.text = `💥 ${totalMisses}`;
-    hitFlashGfx.visible = true;
-    hitFlashGfx.alpha   = 0.42;
-    hitFlashTimer = 0.28;
+    triggerFlash(0.42, 0.28);
     a.label.style.fill = 0xff2200;
     showFloat('MISS!', a.gfx.x, a.gfx.y, 0xff3333);
     onPlayerHit?.();
@@ -237,7 +233,7 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
     for (let i = 0; i < arrows.length; i++) {
       const a = arrows[i];
       if (!a.consumed && a.active && a.dir === dir) {
-        const x = a.gfx.x, y = a.gfx.y;
+        const { x, y } = a.gfx;
         a.consumed = true;
         hitBurst(x, y, DIR_COLOR[dir]);
         showFloat('HIT!', x, y - ARROW_FONT * 0.5, DIR_COLOR[dir]);
@@ -249,13 +245,10 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
         return true;
       }
     }
-    // False press — flash + float text
-    const laneIdx = DIRECTIONS.indexOf(dir);
-    const cx = laneIdx * colW + colW / 2;
+    // False press
+    const cx = DIRECTIONS.indexOf(dir) * colW + colW / 2;
     showFloat('✗', cx, HIT_ZONE_Y + HIT_ZONE_H / 2, 0xff2200);
-    hitFlashGfx.visible = true;
-    hitFlashGfx.alpha   = 0.3;
-    hitFlashTimer = Math.max(hitFlashTimer, 0.18);
+    triggerFlash(0.3, 0.18);
     onFalseHit?.();
     return false;
   };
@@ -284,7 +277,7 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
     // Hit flash fade
     if (hitFlashTimer > 0) {
       hitFlashTimer -= dt;
-      hitFlashGfx.alpha = Math.max(0, (hitFlashTimer / 0.28) * 0.42);
+      hitFlashGfx.alpha = Math.max(0, (hitFlashTimer / hitFlashDuration) * hitFlashPeak);
       if (hitFlashTimer <= 0) hitFlashGfx.visible = false;
     }
 
@@ -294,7 +287,8 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
       if (betweenElapsed >= BETWEEN_SECS) {
         const next = currentRound + 1;
         if (next >= ROUNDS.length || totalElapsed >= TOTAL_GAME_SECS) {
-          phase = 'done'; destroy();
+          phase = 'done';
+          destroy();
           onEnd({ playerHits: totalMisses, swordsCollected: roundHits });
         } else {
           startRound(next);
@@ -308,6 +302,7 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
     const cfg = ROUNDS[currentRound];
     roundElapsed += dt;
     totalElapsed += dt;
+
     const timeLeft = Math.max(0, TOTAL_GAME_SECS - totalElapsed);
     timerTxt.text = `${Math.ceil(timeLeft)}s`;
     timerTxt.style.fill = timeLeft <= LOW_TIME_THRESHOLD
@@ -315,7 +310,8 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
       : 0xffffff;
 
     if (totalElapsed >= TOTAL_GAME_SECS) {
-      phase = 'done'; destroy();
+      phase = 'done';
+      destroy();
       onEnd({ playerHits: totalMisses, swordsCollected: roundHits });
       return;
     }
@@ -331,34 +327,26 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
       const a = arrows[i];
 
       if (a.consumed) {
-        // Fade-out miss arrow
         a.gfx.alpha = Math.max(0, a.gfx.alpha - dt * 4);
-        a.gfx.y     += speed * dt * 0.5;
+        a.gfx.y += speed * dt * 0.5;
         if (a.gfx.alpha <= 0) { a.gfx.destroy(); arrows.splice(i, 1); }
         continue;
       }
 
       a.gfx.y += speed * dt;
 
-      // Enter hit zone
       if (!a.active && a.gfx.y >= HIT_ZONE_Y) {
-        a.active    = true;
-        a.hitTimer  = cfg.hitWindow;
+        a.active   = true;
+        a.hitTimer = cfg.hitWindow;
         a.label.scale.set(1.18);
       }
 
       if (a.active) {
         a.hitTimer -= dt;
-        // Pulsing scale while active
         a.label.scale.set(1.12 + Math.sin(a.hitTimer * 28) * 0.08);
-
-        if (a.hitTimer <= 0) {
-          triggerMiss(a);
-          // stays in array, will fade via consumed branch next frame
-        }
+        if (a.hitTimer <= 0) triggerMiss(a);
       }
 
-      // Safety removal
       if (a.gfx.y > H + ARROW_FONT * 2) { a.gfx.destroy(); arrows.splice(i, 1); }
     }
   };
@@ -368,7 +356,8 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
   // ── Input ──────────────────────────────────────────────────────────────────
   const onKey = (e: KeyboardEvent) => {
     for (const dir of DIRECTIONS) {
-      if (DIR_KEYS[dir].includes(e.key)) { e.preventDefault(); if (!tryHit(dir)) onFalseHit?.(); return; }
+      // tryHit already calls onFalseHit internally — don't call it again here
+      if (DIR_KEYS[dir].includes(e.key)) { e.preventDefault(); tryHit(dir); return; }
     }
   };
 
