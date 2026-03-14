@@ -7,6 +7,7 @@ import {
   login as apiLogin,
   register as apiRegister,
   loginWithGoogle as apiLoginWithGoogle,
+  loginWithTelegram as apiLoginWithTelegram,
   getStoredToken as apiGetStoredToken,
   clearAuth as apiClearAuth,
   AUTH_TOKEN_KEY,
@@ -25,5 +26,6 @@ export type ServerUser = User;
 export const login = apiLogin;
 export const register = apiRegister;
 export const loginWithGoogle = apiLoginWithGoogle;
+export const loginWithTelegram = apiLoginWithTelegram;
 export const getStoredToken = apiGetStoredToken;
 export const clearAuth = apiClearAuth;

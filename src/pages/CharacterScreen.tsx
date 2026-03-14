@@ -10,9 +10,19 @@ import { GameButton } from '@/components/game/GameButton';
 import { ScreenTransition } from '@/components/game/ScreenTransition';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from '@/components/ui/dialog';
 import { useGame } from '@/context/GameContext';
 import { useT } from '@/i18n/useT';
 import { getProfilePhotoUrl, generateProfilePhoto } from '@/api';
+import type { AvatarStyle } from '@/api';
+
+const AVATAR_STYLES: { id: AvatarStyle; emoji: string; label: string; desc: string }[] = [
+  { id: 'anime',     emoji: '🎌', label: 'Anime',     desc: 'Яскравий аніме-арт' },
+  { id: 'pixi',      emoji: '🕹️', label: 'Pixel',     desc: 'Ретро піксель-арт' },
+  { id: 'realistic', emoji: '📷', label: 'Realistic', desc: 'Гіперреалістичний портрет' },
+];
 
 const skillKeys = [
   { emoji: '⚔️', nameKey: 'skill_powerStrike' as const, descKey: 'skill_powerStrikeDesc' as const, cooldown: '2 turns' },
@@ -36,6 +46,8 @@ export default function CharacterScreen() {
   const { t } = useT();
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const [styleDialogOpen, setStyleDialogOpen] = useState(false);
+  const [pendingStyle, setPendingStyle] = useState<AvatarStyle | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -48,17 +60,25 @@ export default function CharacterScreen() {
       .catch(() => setProfilePhotoUrl(null));
   }, [state.token]);
 
-  const handleAvatarClick = () => fileInputRef.current?.click();
+  const handleAvatarClick = () => setStyleDialogOpen(true);
+
+  const handleStyleSelect = (style: AvatarStyle) => {
+    setPendingStyle(style);
+    setStyleDialogOpen(false);
+    // Small delay so dialog fully closes before native file picker opens
+    setTimeout(() => fileInputRef.current?.click(), 100);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file?.type.startsWith('image/')) return;
     if (!state.token) return;
+    const style = pendingStyle ?? 'anime';
     setAvatarLoading(true);
-    generateProfilePhoto(file)
+    generateProfilePhoto(file, style)
       .then((url: string) => setProfilePhotoUrl(url || null))
       .catch((err: unknown) => toast.error(err instanceof Error ? err.message : 'Failed to generate photo'))
-      .finally(() => setAvatarLoading(false));
+      .finally(() => { setAvatarLoading(false); setPendingStyle(null); });
     e.target.value = '';
   };
 
@@ -69,6 +89,34 @@ export default function CharacterScreen() {
       innerClassName="bg-gradient-to-b from-primary/8 via-card to-background"
     >
       <BackHeader title={t('title_character')} />
+      {/* Style picker dialog */}
+      <Dialog open={styleDialogOpen} onOpenChange={setStyleDialogOpen}>
+        <DialogContent className="max-w-sm mx-4">
+          <DialogHeader>
+            <DialogTitle className="font-display text-center text-lg">
+              🎨 Оберіть стиль аватара
+            </DialogTitle>
+            <DialogDescription className="text-center text-xs">
+              AI перетворить твоє фото у вибраному стилі
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            {AVATAR_STYLES.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => handleStyleSelect(s.id)}
+                className="flex flex-col items-center gap-2 rounded-xl border-2 border-border bg-card p-4 shadow-[0_3px_0_hsl(var(--border))] transition-all hover:border-primary hover:bg-primary/10 active:translate-y-[2px] active:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <span className="text-4xl">{s.emoji}</span>
+                <span className="font-display font-bold text-sm text-foreground">{s.label}</span>
+                <span className="text-[11px] text-muted-foreground text-center leading-tight">{s.desc}</span>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <ScreenTransition>
         {/* Avatar section */}
         <div className="flex flex-col items-center gap-2 p-6 pb-4 bg-gradient-to-b from-primary/10 via-transparent to-transparent">

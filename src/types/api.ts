@@ -115,6 +115,7 @@ export interface Enemy {
   damageToEnemy: number;
   isBoss: boolean;
   chestType?: string;
+  dungeonEntrance?: boolean;
 }
 
 export interface ChatMessageEntity {

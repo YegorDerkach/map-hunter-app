@@ -19,11 +19,13 @@ import type { MarkerType } from '@/types/game';
 const TYPE_BADGE_STYLES: Record<MarkerType, string> = {
   monster: 'bg-[hsl(var(--game-red)/0.15)] border-[hsl(var(--game-red)/0.3)] text-[hsl(var(--game-red))]',
   chest:   'bg-[hsl(var(--game-yellow)/0.15)] border-[hsl(var(--game-yellow)/0.3)] text-[hsl(var(--game-yellow))]',
+  dungeon: 'bg-[hsl(var(--game-orange)/0.15)] border-[hsl(var(--game-orange)/0.3)] text-[hsl(var(--game-orange))]',
 };
 
 const LOCATION_TYPE_KEYS: Record<MarkerType, string> = {
   monster: 'location_type_monster',
   chest: 'location_type_chest',
+  dungeon: 'location_type_monster',
 };
 
 type VerifyStep = 'idle' | 'getting-location' | 'camera' | 'verifying' | 'verified' | 'too-far' | 'error';
@@ -45,7 +47,7 @@ export default function LocationInteractionScreen() {
   const navigate = useNavigate();
   const { dispatch } = useGame();
   const { t, tMonster, tMarkerLabel } = useT();
-  const { marker, monster, serverEnemy, loading } = useLocationMarker(id);
+  const { marker, monster, serverEnemy, loading, isDungeonEnemy } = useLocationMarker(id);
 
   const [verifyStep, setVerifyStep] = useState<VerifyStep>('idle');
   const [distanceMeters, setDistanceMeters] = useState<number | null>(null);
@@ -140,7 +142,12 @@ export default function LocationInteractionScreen() {
 
   const handleFight = () => {
     if (serverEnemy) {
-      handleVerify();
+      if (isDungeonEnemy) {
+        // Dungeon session enemies skip proximity/photo verification
+        startServerFight();
+      } else {
+        handleVerify();
+      }
     } else {
       startLocalFight();
     }

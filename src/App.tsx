@@ -22,6 +22,7 @@ import InventoryScreen from "./pages/InventoryScreen";
 import ShopScreen from "./pages/ShopScreen";
 import SettingsScreen from "./pages/SettingsScreen";
 import PatternsScreen from "./pages/PatternsScreen";
+import DungeonEntranceScreen from "./pages/DungeonEntranceScreen";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/tutorial" element={<TutorialScreen />} />
               <Route path="/map" element={<MainMapScreen />} />
               <Route path="/location/:id" element={<LocationInteractionScreen />} />
+              <Route path="/dungeon/:id" element={<DungeonEntranceScreen />} />
               <Route path="/battle/:id" element={<BattleScreen />} />
               <Route path="/loot" element={<LootScreen />} />
               <Route path="/character" element={<CharacterScreen />} />

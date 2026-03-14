@@ -178,8 +178,22 @@ export default function BattleScreen() {
 
   if (!resolvedMonster) return null;
 
+  const dungeonBg = state.dungeonSession?.backgroundUrl ?? null;
+
   return (
     <GameShell pattern="battle">
+      {/* Dungeon session: styled background from AI-processed scan photo */}
+      {dungeonBg && (
+        <div
+          className="absolute inset-0 z-0 pointer-events-none"
+          style={{
+            backgroundImage: `url(${dungeonBg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            opacity: 0.35,
+          }}
+        />
+      )}
       <ScreenTransition className={`p-0 gap-2 flex flex-col min-h-0 flex-1 relative${gameActive ? ' select-none' : ''}`}>
         {/* Overlay blocks taps/selection; Enemy and Your HP panels have z-30 so they stay visible above overlay */}
         {gameActive && (

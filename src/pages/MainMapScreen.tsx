@@ -18,7 +18,11 @@ export default function MainMapScreen() {
   const [, forceUpdate] = useState(0);
 
   const handleMarkerClick = (marker: MapMarkerData) => {
-    navigate(`/location/${marker.id}`);
+    if (marker.type === 'dungeon') {
+      navigate(`/dungeon/${marker.id}`);
+    } else {
+      navigate(`/location/${marker.id}`);
+    }
   };
 
   const handleCenterRef = useCallback((fn: () => void) => {

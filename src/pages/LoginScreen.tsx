@@ -4,18 +4,29 @@ import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase
 import { useGame } from '@/context/GameContext';
 import { useT } from '@/i18n/useT';
 import { GameButton } from '@/components/game/GameButton';
-import { login, register, loginWithGoogle } from '@/service/auth';
+import { login, register, loginWithGoogle, loginWithTelegram } from '@/service/auth';
 import { firebaseAuth, googleProvider } from '@/lib/firebase';
 import type { AuthUser } from '@/types/game';
 
-/** Telegram WebView blocks popups — use redirect flow instead. */
+interface TelegramWebApp {
+  initData: string;
+  ready(): void;
+}
+declare global {
+  interface Window {
+    Telegram?: { WebApp?: TelegramWebApp };
+  }
+}
+
+function getTelegramWebApp(): TelegramWebApp | null {
+  return window.Telegram?.WebApp ?? null;
+}
+
 function isTelegramWebView(): boolean {
   if (typeof window === 'undefined') return false;
-  const ua = navigator.userAgent ?? '';
   return (
-    // Telegram sets this global when running as a Mini App
-    !!(window as { Telegram?: { WebApp?: unknown } }).Telegram?.WebApp ||
-    ua.includes('Telegram')
+    !!window.Telegram?.WebApp ||
+    navigator.userAgent.includes('Telegram')
   );
 }
 
@@ -37,8 +48,37 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Auto-login when running inside Telegram Mini App.
+  useEffect(() => {
+    const twa = getTelegramWebApp();
+    if (!twa) return;
+    twa.ready();
+    if (!twa.initData) return;
+
+    let cancelled = false;
+    setLoading(true);
+    loginWithTelegram(twa.initData)
+      .then((res) => {
+        if (cancelled) return;
+        const user = res.data as AuthUser | null;
+        if (res.token && user) {
+          dispatch({ type: 'LOGIN_SERVER', payload: { token: res.token, user } });
+          navigate(state.tutorialComplete ? '/map' : '/tutorial');
+        } else {
+          setError(t('login_error'));
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : t('login_error'));
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // After a redirect-based Google sign-in, Firebase returns here and we pick up the result.
   useEffect(() => {
+    if (isTelegramWebView()) return; // handled above
     let cancelled = false;
     setLoading(true);
     getRedirectResult(firebaseAuth)
@@ -56,7 +96,6 @@ export default function LoginScreen() {
       })
       .catch((err) => {
         if (!cancelled) {
-          // Ignore "no redirect result" — that's the normal first-load case.
           const code: string = (err as { code?: string }).code ?? '';
           if (code !== 'auth/no-current-user') {
             setError(err instanceof Error ? err.message : t('login_error'));
@@ -189,6 +228,35 @@ export default function LoginScreen() {
         <div className="w-full flex flex-col gap-3 bg-[hsl(200_35%_18%/0.6)] backdrop-blur border-[3px] border-[hsl(173_50%_45%/0.4)] rounded-xl p-5 shadow-[0_4px_0_hsl(200_30%_12%/0.5),inset_0_1px_0_hsl(173_50%_70%/0.15)]">
           {mode === 'choose' && (
             <>
+              {isTelegramWebView() && (
+                <GameButton
+                  variant="gold"
+                  size="lg"
+                  fullWidth
+                  onClick={() => {
+                    const twa = getTelegramWebApp();
+                    if (!twa?.initData) { setError(t('login_error')); return; }
+                    setError(null);
+                    setLoading(true);
+                    loginWithTelegram(twa.initData)
+                      .then((res) => {
+                        const user = res.data as AuthUser | null;
+                        if (res.token && user) {
+                          dispatch({ type: 'LOGIN_SERVER', payload: { token: res.token, user } });
+                          navigate(state.tutorialComplete ? '/map' : '/tutorial');
+                        } else {
+                          setError(t('login_error'));
+                        }
+                      })
+                      .catch((err) => setError(err instanceof Error ? err.message : t('login_error')))
+                      .finally(() => setLoading(false));
+                  }}
+                  disabled={loading}
+                >
+                  ✈️ Увійти через Telegram
+                </GameButton>
+              )}
+              {!isTelegramWebView() && (
               <GameButton
                 variant="gold"
                 size="lg"
@@ -198,6 +266,7 @@ export default function LoginScreen() {
               >
                 <span className="font-bold text-lg leading-none">G</span> {t('login_google')}
               </GameButton>
+              )}
               <GameButton
                 variant="outline"
                 size="lg"

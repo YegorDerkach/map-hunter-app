@@ -1,5 +1,7 @@
+import type { Enemy } from '@/types/api';
+
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-export type MarkerType = 'monster' | 'chest';
+export type MarkerType = 'monster' | 'chest' | 'dungeon';
 export type ItemCategory =
   | 'weapons'
   | 'armor'
@@ -144,6 +146,17 @@ export interface AuthUser {
   items?: unknown[];
 }
 
+export interface DungeonSession {
+  /** Signed GCS URL for the styled background image (used in all mini-games). */
+  backgroundUrl: string | null;
+  /** Full enemy objects spawned for this session (stored for offline marker resolution). */
+  enemies: Enemy[];
+  /** IDs of the 5 spawned enemy documents — derived from enemies[]. */
+  enemyIds: string[];
+  centerLat: number;
+  centerLng: number;
+}
+
 export interface GameState {
   player: Player;
   isLoggedIn: boolean;
@@ -159,4 +172,6 @@ export interface GameState {
   authUser?: AuthUser | null;
   /** Indices of non-boss games (0,1,2) already used this cycle; reset when all 3 used */
   usedNonBossGameIds: number[];
+  /** Active dungeon session; null when no dungeon is in progress. */
+  dungeonSession: DungeonSession | null;
 }

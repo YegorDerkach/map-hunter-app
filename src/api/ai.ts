@@ -10,8 +10,10 @@ export async function askAi(dto: AiAskDTO): Promise<unknown> {
   return request<unknown>('/api/ai/ask', 'POST', dto);
 }
 
-export async function generateProfilePhoto(file: File): Promise<string> {
-  return request<string>('/api/ai/generate-profile', 'POST', file, {
+export type AvatarStyle = 'anime' | 'pixi' | 'realistic';
+
+export async function generateProfilePhoto(file: File, style: AvatarStyle = 'anime'): Promise<string> {
+  return request<string>(`/api/ai/generate-profile?style=${encodeURIComponent(style)}`, 'POST', file, {
     skipContentType: true,
     responseText: true,
   });

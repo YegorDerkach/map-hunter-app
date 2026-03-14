@@ -38,3 +38,7 @@ export {
   generateBattlePhoto,
   generateChests,
 } from './ai';
+export type { AvatarStyle } from './ai';
+
+export { startDungeon } from './dungeon';
+export type { DungeonStartResponse } from './dungeon';

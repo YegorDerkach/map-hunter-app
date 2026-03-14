@@ -7,7 +7,7 @@ import { mapMarkers } from '@/data/monsters';
 import { monsters } from '@/data/monsters';
 
 /**
- * Resolves location by id: static marker + local monster, or API enemy (when logged in).
+ * Resolves location by id: static marker + local monster, dungeon session enemy, or API enemy.
  */
 export function useLocationMarker(locationId: string | undefined) {
   const { state } = useGame();
@@ -19,8 +19,13 @@ export function useLocationMarker(locationId: string | undefined) {
     ? monsters.find((m) => m.id === staticMarker.monsterId) ?? null
     : null;
 
+  // Check if this is a dungeon session enemy — resolve directly from session state
+  const dungeonEnemy = locationId && state.dungeonSession
+    ? state.dungeonSession.enemies.find((e) => e.id === locationId) ?? null
+    : null;
+
   useEffect(() => {
-    if (!locationId || !state.token || staticMarker != null) {
+    if (!locationId || !state.token || staticMarker != null || dungeonEnemy != null) {
       setServerEnemy(null);
       return;
     }
@@ -32,23 +37,26 @@ export function useLocationMarker(locationId: string | undefined) {
       })
       .catch(() => setServerEnemy(null))
       .finally(() => setLoading(false));
-  }, [locationId, state.token, staticMarker != null]);
+  }, [locationId, state.token, staticMarker != null, dungeonEnemy != null]);
 
-  const marker: MapMarkerData | null = staticMarker ?? (serverEnemy
+  const resolvedEnemy = dungeonEnemy ?? serverEnemy;
+
+  const marker: MapMarkerData | null = staticMarker ?? (resolvedEnemy
     ? {
-        id: serverEnemy.id,
+        id: resolvedEnemy.id,
         type: 'monster',
         x: 0,
         y: 0,
-        label: serverEnemy.name,
-        enemyId: serverEnemy.id,
+        label: resolvedEnemy.name,
+        enemyId: resolvedEnemy.id,
       }
     : null);
 
   return {
     marker,
     monster: localMonster,
-    serverEnemy,
+    serverEnemy: resolvedEnemy,
     loading,
+    isDungeonEnemy: dungeonEnemy != null,
   };
 }

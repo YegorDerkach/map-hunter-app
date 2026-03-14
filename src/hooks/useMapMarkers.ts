@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getEnemiesByCity } from '@/api';
+import { useGame } from '@/context/GameContext';
 import type { Enemy } from '@/types/api';
 import type { MapMarkerData } from '@/types/game';
 import { mapMarkers } from '@/data/monsters';
@@ -12,7 +13,7 @@ function enemyToMarker(enemy: Enemy): MapMarkerData {
   const y = (0.5 - (enemy.latitude - DEFAULT_CENTER.lat) / SPREAD) * 100;
   return {
     id: enemy.id,
-    type: 'monster',
+    type: enemy.dungeonEntrance ? 'dungeon' : 'monster',
     x: Math.max(0, Math.min(100, x)),
     y: Math.max(0, Math.min(100, y)),
     label: enemy.name,
@@ -23,14 +24,15 @@ function enemyToMarker(enemy: Enemy): MapMarkerData {
 }
 
 /**
- * Returns map markers from the server: fetches enemies via getEnemiesByCity(city)
- * and merges with static chests/events. No auth required for enemy list.
+ * Returns map markers from the server: fetches enemies via getEnemiesByCity(city),
+ * merges dungeon session enemies (when active), and falls back to static markers.
  */
 export function useMapMarkers(city = 'Kyiv'): {
   markers: MapMarkerData[];
   loading: boolean;
   error: string | null;
 } {
+  const { state } = useGame();
   const [enemies, setEnemies] = useState<Enemy[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,11 +52,30 @@ export function useMapMarkers(city = 'Kyiv'): {
   }, [city]);
 
   const staticNonMonsters = mapMarkers.filter((m) => m.type !== 'monster');
-  const apiMonsterMarkers = enemies.map(enemyToMarker);
-  const markers =
-    apiMonsterMarkers.length > 0
-      ? [...apiMonsterMarkers, ...staticNonMonsters]
-      : mapMarkers;
+  const apiEnemyMarkers = enemies.map(enemyToMarker);
+
+  // Dungeon session enemies: show on map as monster markers (no re-scan needed)
+  const dungeonMarkers: MapMarkerData[] = (state.dungeonSession?.enemies ?? []).map((e) => ({
+    id: e.id,
+    type: 'monster' as const,
+    x: 50,
+    y: 50,
+    label: e.isBoss ? `👑 ${e.name}` : e.name,
+    enemyId: e.id,
+    lat: e.latitude,
+    lng: e.longitude,
+  }));
+
+  let baseMarkers: MapMarkerData[];
+  if (apiEnemyMarkers.length > 0) {
+    baseMarkers = [...apiEnemyMarkers, ...staticNonMonsters];
+  } else {
+    baseMarkers = [...mapMarkers];
+  }
+
+  const markers = dungeonMarkers.length > 0
+    ? [...baseMarkers, ...dungeonMarkers]
+    : baseMarkers;
 
   return { markers, loading, error };
 }

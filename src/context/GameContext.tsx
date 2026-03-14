@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { GameState, Player, InventoryItem, BattleState, Locale, AuthUser } from '@/types/game';
+import { GameState, Player, InventoryItem, BattleState, Locale, AuthUser, DungeonSession } from '@/types/game';
 import type { Enemy } from '@/types/api';
 import { startingInventory } from '@/data/items';
 import { monsters } from '@/data/monsters';
@@ -58,6 +58,7 @@ const initialState: GameState = {
   token: initialAuth.token,
   authUser: initialAuth.authUser,
   usedNonBossGameIds: [],
+  dungeonSession: null,
 };
 
 export type GameAction =
@@ -79,7 +80,9 @@ export type GameAction =
   | { type: 'SET_LOCALE'; payload: Locale }
   | { type: 'RECORD_NON_BOSS_GAME_USED'; payload: number }
   | { type: 'RESET_NON_BOSS_GAMES' }
-  | { type: 'SYNC_PLAYER_FROM_SERVER'; payload: AuthUser };
+  | { type: 'SYNC_PLAYER_FROM_SERVER'; payload: AuthUser }
+  | { type: 'DUNGEON_START'; payload: DungeonSession }
+  | { type: 'DUNGEON_END' };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -316,7 +319,13 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'LOGOUT':
       clearAuth();
-      return { ...initialState, token: null, authUser: null, usedNonBossGameIds: [] };
+      return { ...initialState, token: null, authUser: null, usedNonBossGameIds: [], dungeonSession: null };
+
+    case 'DUNGEON_START':
+      return { ...state, dungeonSession: action.payload };
+
+    case 'DUNGEON_END':
+      return { ...state, dungeonSession: null };
 
     default:
       return state;
