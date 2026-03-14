@@ -1,4 +1,5 @@
 export { BackHeader } from './BackHeader';
+export { BattleArea } from './BattleArea';
 export { GameMap } from './GameMap';
 export { CategoryTabs } from './CategoryTabs';
 export { FloatingActionButton } from './FloatingActionButton';
@@ -7,6 +8,7 @@ export { GameShell } from './GameShell';
 export { HPBar } from './HPBar';
 export { ItemCard } from './ItemCard';
 export { MapMarker } from './MapMarker';
+export { MiniGameCanvas } from './MiniGameCanvas';
 export { QuestCard } from './QuestCard';
 export { ScreenTransition } from './ScreenTransition';
 export { StatRow } from './StatRow';

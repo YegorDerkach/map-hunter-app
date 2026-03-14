@@ -1,12 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GameShell } from '@/components/game/GameShell';
 import { HPBar } from '@/components/game/HPBar';
 import { GameButton } from '@/components/game/GameButton';
 import { ScreenTransition } from '@/components/game/ScreenTransition';
+import { BattleArea } from '@/components/game/BattleArea';
 import { useGame } from '@/context/GameContext';
 import { monsters } from '@/data/monsters';
 import { items } from '@/data/items';
+import { createDodgeGame, DAMAGE_PER_HIT, DAMAGE_PER_SWORD } from '@/games';
+import type { MiniGame } from '@/games';
 
 const ENEMY_ATTACK_DELAY_MS = 700;
 
@@ -14,6 +17,12 @@ export default function BattleScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { state, dispatch } = useGame();
+  const miniGameRef = useRef<MiniGame | null>(null);
+  const dispatchRef = useRef(dispatch);
+  dispatchRef.current = dispatch;
+
+  // Destroy game on unmount to prevent ticker running after navigation
+  useEffect(() => () => { miniGameRef.current?.destroy(); }, []);
 
   // Start battle on mount if not already active
   useEffect(() => {
@@ -92,19 +101,20 @@ export default function BattleScreen() {
         </div>
 
         {/* Battle arena — shrinks when needed so gaps between blocks are always kept */}
-        <div className="game-panel flex-1 min-h-[140px] sm:min-h-[200px] rounded-xl border-2 border-dashed border-border bg-[var(--gradient-battle)] flex flex-col items-center justify-center gap-2 py-2 relative overflow-hidden shrink">
-          <div
-            className="absolute inset-0 opacity-5"
-            style={{ background: 'var(--gradient-battle)' }}
-          />
-          <div className="text-7xl animate-float z-10">{monster.emoji}</div>
-          {battle?.turn === 'enemy' && (
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-[hsl(var(--game-red)/0.9)] text-primary-foreground text-xs font-bold px-3 py-1 rounded-md animate-bounce-in border border-primary-foreground/25">
-              Enemy attacks!
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground font-display tracking-widest z-10">BATTLE AREA</p>
-        </div>
+        <BattleArea
+          isEnemyTurn={battle?.turn === 'enemy'}
+          onMiniGameReady={(app) => {
+            miniGameRef.current?.destroy();
+            miniGameRef.current = createDodgeGame(app, ({ playerHits, swordsCollected }) => {
+              if (playerHits > 0) {
+                dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'player', amount: playerHits * DAMAGE_PER_HIT } });
+              }
+              if (swordsCollected > 0) {
+                dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount: swordsCollected * DAMAGE_PER_SWORD } });
+              }
+            });
+          }}
+        />
 
         {/* Player HP */}
         <div className="game-panel p-2">
@@ -121,7 +131,7 @@ export default function BattleScreen() {
           {/* Helper image: aspect 3:5, small inset so image and border aren't clipped */}
           <div className="w-1/4 min-w-0 flex justify-center items-center self-stretch min-h-0 py-0.5">
             <div className="h-full max-w-full max-h-full aspect-[3/5] flex-shrink-0">
-              <img src="/helper.jpg" alt="" className="w-full h-full object-cover object-center rounded-lg border-2 border-border shadow-[0_2px_0_hsl(var(--border))]" />
+              <img src="/helper.png" alt="" className="w-full h-full object-cover object-center rounded-lg border-2 border-border shadow-[0_2px_0_hsl(var(--border))]" />
             </div>
           </div>
           <div className="flex-1 min-w-0 flex flex-col gap-2 min-h-0">
