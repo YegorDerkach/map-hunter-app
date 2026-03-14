@@ -2,10 +2,13 @@ import { Application, Container, Graphics, Text } from 'pixi.js';
 import type { MiniGame, MiniGameOptions } from '../types';
 
 // ── Round config ────────────────────────────────────────────────────────────
+/** HP taken by player when they lose a round. */
+const PLAYER_LOSE_HP = 34;
+
 const ROUNDS = [
-  { difficulty: 'easy'   as const, damage: 10 },
-  { difficulty: 'medium' as const, damage: 5  },
-  { difficulty: 'hard'   as const, damage: 2  },
+  { difficulty: 'easy'   as const },
+  { difficulty: 'medium' as const },
+  { difficulty: 'hard'   as const },
 ] as const;
 
 // ── Palette ─────────────────────────────────────────────────────────────────
@@ -104,6 +107,7 @@ export function createTicTacToeGame(
 ): MiniGame {
   const onPlayerHit    = options?.onPlayerHit;
   const onRoundComplete = options?.onRoundComplete;
+  const onDraw         = options?.onDraw;
 
   const W = app.screen.width;
   const H = app.screen.height;
@@ -271,11 +275,12 @@ export function createTicTacToeGame(
     } else if (result === 'lose') {
       showFloat('LOSE! ⭕', W / 2, H * 0.4, RED);
       triggerFlash(0.45, 0.4);
-      onPlayerHit?.(ROUNDS[currentRound].damage);
+      onPlayerHit?.(PLAYER_LOSE_HP);
       statusTxt.text = 'Enemy wins!';
       (statusTxt.style as { fill: number }).fill = RED;
     } else {
       showFloat('DRAW', W / 2, H * 0.4, ORANGE);
+      onDraw?.();
       statusTxt.text = 'Draw!';
       (statusTxt.style as { fill: number }).fill = ORANGE;
     }

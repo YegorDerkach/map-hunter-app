@@ -16,6 +16,8 @@ export interface MiniGameOptions {
   onPlayerHit?: (amount?: number) => void;
   /** Called when the player collects 5 swords and wins the round (e.g. deal 1/3 enemy HP). */
   onRoundComplete?: () => void;
+  /** Called when round is a draw (e.g. deal damage to both player and enemy). */
+  onDraw?: () => void;
   /** Called when player presses a button with no arrow to hit (false press). */
   onFalseHit?: () => void;
 }

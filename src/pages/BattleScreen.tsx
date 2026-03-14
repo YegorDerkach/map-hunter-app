@@ -6,12 +6,15 @@ import { GameButton } from '@/components/game/GameButton';
 import { ScreenTransition } from '@/components/game/ScreenTransition';
 import { BattleArea } from '@/components/game/BattleArea';
 import { useGame } from '@/context/GameContext';
+import { endBattle, killEnemy } from '@/api';
 import { monsters } from '@/data/monsters';
 import { items } from '@/data/items';
-// import { createDodgeGame, DAMAGE_PER_HIT } from '@/games'; // Game 1 — disabled
-// import { createArrowGame, DAMAGE_PER_MISS } from '@/games'; // Game 2 — disabled
-// import { createPairsGame } from '@/games'; // Game 3 — disabled
-import { createTicTacToeGame } from '@/games'; // Game 4
+import {
+  createDodgeGame,
+  createArrowGame,
+  createPairsGame,
+  createTicTacToeGame,
+} from '@/games';
 import type { MiniGame } from '@/games';
 import { useT } from '@/i18n/useT';
 
@@ -103,13 +106,33 @@ export default function BattleScreen() {
     if (battleEndedRef.current) return;
     if (battle.monster.hp <= 0) {
       battleEndedRef.current = true;
-      dispatch({ type: 'GAIN_XP', payload: battle.monster.xpReward });
-      dispatch({ type: 'GAIN_GOLD', payload: battle.monster.goldReward });
-      dispatch({ type: 'SET_LOOT', payload: [{ item: items.health_potion, quantity: 1 }] });
+      const serverEnemyId = battle.serverEnemyId;
+      if (serverEnemyId) {
+        killEnemy(serverEnemyId)
+          .catch(() => {})
+          .finally(() => {
+            endBattle()
+              .then((user) => {
+                if (user) dispatch({ type: 'SYNC_PLAYER_FROM_SERVER', payload: user });
+              })
+              .catch(() => {});
+          });
+      } else {
+        dispatch({ type: 'GAIN_XP', payload: battle.monster.xpReward });
+        dispatch({ type: 'GAIN_GOLD', payload: battle.monster.goldReward });
+        dispatch({ type: 'SET_LOOT', payload: [{ item: items.health_potion, quantity: 1 }] });
+      }
       dispatch({ type: 'END_BATTLE', payload: { won: true } });
       navigate('/loot');
     } else if (battle.playerHp <= 0) {
       battleEndedRef.current = true;
+      if (battle.serverEnemyId) {
+        endBattle()
+          .then((user) => {
+            if (user) dispatch({ type: 'SYNC_PLAYER_FROM_SERVER', payload: user });
+          })
+          .catch(() => {});
+      }
       dispatch({ type: 'END_BATTLE', payload: { won: false } });
       navigate('/map');
     }
@@ -187,22 +210,56 @@ export default function BattleScreen() {
           className={gameActive ? 'relative z-30' : undefined}
           onMiniGameReady={(app) => {
             miniGameRef.current?.destroy();
-            miniGameRef.current = createTicTacToeGame(
-              app,
-              () => { setGameActive(false); },
-              {
-                onPlayerHit: (amount = 10) => {
-                  dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'player', amount } });
-                },
-                onRoundComplete: () => {
-                  // All pairs found → enemy loses 1/3 of max HP
-                  const amount = Math.ceil(monster.maxHp / 3);
-                  if (amount > 0) {
-                    dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount } });
-                  }
-                },
+            const isBoss = !!battle?.isBoss;
+            let used = state.usedNonBossGameIds;
+            if (used.length >= 3) {
+              dispatchRef.current({ type: 'RESET_NON_BOSS_GAMES' });
+              used = [];
+            }
+            const nonBossIndices = [0, 1, 2];
+            const available = nonBossIndices.filter((i) => !used.includes(i));
+            const gameIndex = isBoss ? 3 : available[Math.floor(Math.random() * available.length)];
+            if (!isBoss) {
+              dispatchRef.current({ type: 'RECORD_NON_BOSS_GAME_USED', payload: gameIndex });
+            }
+
+            const commonOptions = {
+              onPlayerHit: (amount?: number) => {
+                dispatchRef.current({
+                  type: 'DEAL_DAMAGE',
+                  payload: { target: 'player', amount: amount ?? 34 },
+                });
               },
-            );
+              onRoundComplete: () => {
+                const amount = Math.ceil(monster.maxHp / 3);
+                if (amount > 0) {
+                  dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount } });
+                }
+              },
+            };
+
+            if (gameIndex === 3) {
+              miniGameRef.current = createTicTacToeGame(
+                app,
+                () => setGameActive(false),
+                {
+                  ...commonOptions,
+                  onDraw: () => {
+                    dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'player', amount: 15 } });
+                    dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount: 15 } });
+                  },
+                },
+              );
+            } else {
+              const onEnd = (_result: unknown) => setGameActive(false);
+              if (gameIndex === 0) {
+                miniGameRef.current = createDodgeGame(app, onEnd, commonOptions);
+              } else if (gameIndex === 1) {
+                miniGameRef.current = createArrowGame(app, onEnd, commonOptions);
+              } else {
+                miniGameRef.current = createPairsGame(app, onEnd, commonOptions);
+              }
+            }
             setGameActive(true);
           }}
         />

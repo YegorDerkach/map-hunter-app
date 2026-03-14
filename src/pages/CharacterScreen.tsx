@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, Heart, Sword, Shield, Zap, Clover, Star } from 'lucide-react';
+import { Camera, Heart, Sword, Shield, Zap, Clover, Star, Coins, Gem, Mail } from 'lucide-react';
 import { GameShell } from '@/components/game/GameShell';
 import { BackHeader } from '@/components/game/BackHeader';
 import { HPBar } from '@/components/game/HPBar';
@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useGame } from '@/context/GameContext';
 import { useT } from '@/i18n/useT';
-import MapHunterService from '@/service/UseMapHunterService';
+import { getProfilePhotoUrl, uploadUserPhoto } from '@/api';
 
 const skillKeys = [
   { emoji: '⚔️', nameKey: 'skill_powerStrike' as const, descKey: 'skill_powerStrikeDesc' as const, cooldown: '2 turns' },
@@ -33,47 +33,32 @@ export default function CharacterScreen() {
   const { state } = useGame();
   const { player } = state;
   const { t } = useT();
-  const { PostPhoto, GetPhotoProfile, loading: avatarLoading } = MapHunterService();
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
+  const [avatarLoading, setAvatarLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    GetPhotoProfile()
-      .then((res: unknown) => {
-        const url =
-          res && typeof res === 'object' && 'url' in res && typeof (res as { url: unknown }).url === 'string'
-            ? (res as { url: string }).url
-            : res && typeof res === 'object' && 'photo' in res && typeof (res as { photo: unknown }).photo === 'string'
-              ? (res as { photo: string }).photo
-              : typeof res === 'string'
-                ? res
-                : null;
-        setProfilePhotoUrl(url);
-      })
+    if (!state.token) {
+      setProfilePhotoUrl(null);
+      return;
+    }
+    getProfilePhotoUrl()
+      .then((url) => setProfilePhotoUrl(url || null))
       .catch(() => setProfilePhotoUrl(null));
-    // Load avatar once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [state.token]);
 
   const handleAvatarClick = () => fileInputRef.current?.click();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file?.type.startsWith('image/')) return;
-    PostPhoto(file)
-      .then(() => GetPhotoProfile())
-      .then((res: unknown) => {
-        const url =
-          res && typeof res === 'object' && 'url' in res && typeof (res as { url: unknown }).url === 'string'
-            ? (res as { url: string }).url
-            : res && typeof res === 'object' && 'photo' in res && typeof (res as { photo: unknown }).photo === 'string'
-              ? (res as { photo: string }).photo
-              : typeof res === 'string'
-                ? res
-                : null;
-        setProfilePhotoUrl(url);
-      })
-      .catch(() => {});
+    if (!state.token) return;
+    setAvatarLoading(true);
+    uploadUserPhoto(file)
+      .then(() => getProfilePhotoUrl())
+      .then((url) => setProfilePhotoUrl(url || null))
+      .catch(() => {})
+      .finally(() => setAvatarLoading(false));
     e.target.value = '';
   };
 
@@ -114,6 +99,12 @@ export default function CharacterScreen() {
           </button>
           <p className="text-xs text-muted-foreground">{t('character_clickToChangeAvatar')}</p>
           <h2 className="font-display font-bold text-xl text-foreground">{player.name}</h2>
+          {state.authUser?.email && (
+            <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
+              <Mail className="w-3.5 h-3.5 shrink-0" />
+              <span>{state.authUser.email}</span>
+            </div>
+          )}
           <div className="flex items-center gap-1.5 bg-primary/10 border-2 border-primary/30 rounded-md px-3 py-1">
             <Star className="w-3.5 h-3.5 text-primary fill-primary" />
             <span className="font-display font-bold text-sm text-primary">
@@ -128,6 +119,16 @@ export default function CharacterScreen() {
             max={player.maxHp}
             className="w-full max-w-[240px]"
           />
+          <div className="flex items-center gap-4 w-full max-w-[240px] justify-center">
+            <div className="flex items-center gap-1.5 rounded-lg bg-[hsl(var(--game-yellow)/0.15)] border-2 border-[hsl(var(--game-yellow)/0.5)] px-3 py-1.5">
+              <Coins className="w-4 h-4 text-[hsl(var(--game-yellow))]" />
+              <span className="font-display font-bold text-sm text-[hsl(var(--game-yellow))]">{player.gold}</span>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-lg bg-secondary/15 border-2 border-secondary/50 px-3 py-1.5">
+              <Gem className="w-4 h-4 text-secondary" />
+              <span className="font-display font-bold text-sm text-secondary">{player.gems}</span>
+            </div>
+          </div>
         </div>
 
         {/* Tabs */}

@@ -1,5 +1,5 @@
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-export type MarkerType = 'monster' | 'chest' | 'event';
+export type MarkerType = 'monster' | 'chest';
 export type ItemCategory =
   | 'weapons'
   | 'armor'
@@ -53,6 +53,8 @@ export interface MapMarkerData {
   label: string;
   monsterId?: string;
   chestId?: string;
+  /** Server enemy id (from getEnemiesByCity); when set, location uses API enemy */
+  enemyId?: string;
 }
 
 export interface Item {
@@ -105,6 +107,10 @@ export interface BattleState {
   playerHp: number;
   turn: 'player' | 'enemy';
   log: string[];
+  /** When set, battle is from API; on win call killEnemy + endBattle */
+  serverEnemyId?: string;
+  /** When true, use only game 4 (boss minigame) */
+  isBoss?: boolean;
 }
 
 export interface GameSettings {
@@ -115,6 +121,21 @@ export interface GameSettings {
 
 export type Locale = 'uk' | 'en';
 
+/** Server user from auth (SHARE-server). Optional; present when logged in via API. */
+export interface AuthUser {
+  id: string;
+  nickname?: string;
+  email?: string;
+  pathToPhoto?: string;
+  hp?: number;
+  xp?: number;
+  lvl?: number;
+  damage?: number;
+  coins?: number;
+  gems?: number;
+  items?: unknown[];
+}
+
 export interface GameState {
   player: Player;
   isLoggedIn: boolean;
@@ -124,4 +145,10 @@ export interface GameState {
   settings: GameSettings;
   lastLoot: InventoryItem[];
   locale: Locale;
+  /** JWT from SHARE-server auth */
+  token?: string | null;
+  /** User from server when logged in via login/register */
+  authUser?: AuthUser | null;
+  /** Indices of non-boss games (0,1,2) already used this cycle; reset when all 3 used */
+  usedNonBossGameIds: number[];
 }

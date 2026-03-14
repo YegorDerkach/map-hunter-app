@@ -6,7 +6,8 @@ import { HPBar } from '@/components/game/HPBar';
 import { ScreenTransition } from '@/components/game/ScreenTransition';
 import { useGame } from '@/context/GameContext';
 import { useT } from '@/i18n/useT';
-import { mapMarkers, monsters } from '@/data/monsters';
+import { generateBattle } from '@/api';
+import { useLocationMarker } from '@/hooks/useLocationMarker';
 import { items } from '@/data/items';
 import type { MarkerType } from '@/types/game';
 
@@ -15,15 +16,11 @@ import type { MarkerType } from '@/types/game';
 const TYPE_BADGE_STYLES: Record<MarkerType, string> = {
   monster: 'bg-[hsl(var(--game-red)/0.15)] border-[hsl(var(--game-red)/0.3)] text-[hsl(var(--game-red))]',
   chest:   'bg-[hsl(var(--game-yellow)/0.15)] border-[hsl(var(--game-yellow)/0.3)] text-[hsl(var(--game-yellow))]',
-  event:   'bg-[hsl(var(--game-purple)/0.15)] border-[hsl(var(--game-purple)/0.3)] text-[hsl(var(--game-purple))]',
 };
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 const LOCATION_TYPE_KEYS: Record<MarkerType, string> = {
   monster: 'location_type_monster',
   chest: 'location_type_chest',
-  event: 'location_type_event',
 };
 
 export default function LocationInteractionScreen() {
@@ -31,11 +28,18 @@ export default function LocationInteractionScreen() {
   const navigate = useNavigate();
   const { dispatch } = useGame();
   const { t, tMonster, tMarkerLabel } = useT();
+  const { marker, monster, serverEnemy, loading } = useLocationMarker(id);
 
-  const marker = mapMarkers.find((m) => m.id === id);
-  const monster = marker?.monsterId
-    ? monsters.find((m) => m.id === marker.monsterId)
-    : null;
+  if (loading && !marker) {
+    return (
+      <GameShell pattern="dots">
+        <BackHeader title={t('title_location')} />
+        <div className="flex-1 flex items-center justify-center p-8">
+          <p className="text-muted-foreground text-center">{t('location_loading')}</p>
+        </div>
+      </GameShell>
+    );
+  }
 
   if (!marker) {
     return (
@@ -48,9 +52,19 @@ export default function LocationInteractionScreen() {
     );
   }
 
-  const headerTitle = tMarkerLabel(marker.type, marker.label, marker.monsterId);
+  const headerTitle = tMarkerLabel(marker.type, marker.label, marker.monsterId ?? marker.enemyId);
 
   const handleFight = () => {
+    if (serverEnemy) {
+      generateBattle()
+        .then((user) => {
+          if (user) dispatch({ type: 'SYNC_PLAYER_FROM_SERVER', payload: user });
+          dispatch({ type: 'START_SERVER_BATTLE', payload: { enemy: serverEnemy } });
+          navigate(`/battle/${serverEnemy.id}`);
+        })
+        .catch(() => {});
+      return;
+    }
     if (!monster) return;
     dispatch({ type: 'START_BATTLE', payload: monster.id });
     navigate(`/battle/${monster.id}`);
@@ -68,7 +82,6 @@ export default function LocationInteractionScreen() {
   };
 
   const isChest = marker.type === 'chest';
-  const isEvent = marker.type === 'event';
 
   return (
     <GameShell pattern="dots">
@@ -84,13 +97,13 @@ export default function LocationInteractionScreen() {
 
           {/* Illustration */}
           <div className="w-40 h-40 rounded-xl border-2 border-b-[6px] border-border bg-muted flex items-center justify-center text-8xl game-shadow animate-float">
-            {monster ? monster.emoji : isChest ? '📦' : '🌟'}
+            {monster ? monster.emoji : serverEnemy ? '⚔️' : '📦'}
           </div>
 
           {/* Name & stats */}
           <div className="w-full text-center">
             <h2 className="font-display font-bold text-2xl text-foreground mb-1">
-              {monster ? tMonster(monster.id, monster.name) : tMarkerLabel(marker.type, marker.label, undefined)}
+              {monster ? tMonster(monster.id, monster.name) : serverEnemy ? serverEnemy.name : tMarkerLabel(marker.type, marker.label, undefined)}
             </h2>
 
             {monster && (
@@ -106,14 +119,19 @@ export default function LocationInteractionScreen() {
               </>
             )}
 
+            {serverEnemy && (
+              <>
+                <div className="inline-flex items-center gap-1.5 bg-muted border-2 border-border rounded-md px-3 py-1 mb-4">
+                  {serverEnemy.isBoss && <span className="text-xs font-display font-bold text-[hsl(var(--game-purple))]">Boss</span>}
+                  <span className="text-xs text-[hsl(var(--game-red))] font-display font-bold">{t('location_atk')} {serverEnemy.damageToEnemy}</span>
+                </div>
+                <HPBar current={serverEnemy.hp} max={serverEnemy.hp} label={t('location_monsterHp')} className="mb-4" />
+              </>
+            )}
+
             {isChest && (
               <p className="text-sm text-muted-foreground">
                 {t('location_chestDesc')}
-              </p>
-            )}
-            {isEvent && (
-              <p className="text-sm text-muted-foreground">
-                {t('location_eventDesc')}
               </p>
             )}
           </div>
@@ -132,11 +150,16 @@ export default function LocationInteractionScreen() {
               </div>
             </div>
           )}
+          {serverEnemy && (
+            <div className="w-full bg-muted/50 border-2 border-border rounded-lg p-3">
+              <p className="text-xs text-muted-foreground text-center">{t('location_chestDesc')}</p>
+            </div>
+          )}
         </div>
 
         {/* Bottom actions */}
         <div className="p-4 flex flex-col gap-3 border-t-2 border-border">
-          {monster && (
+          {(monster || serverEnemy) && (
             <GameButton variant="danger" size="lg" fullWidth onClick={handleFight}>
               ⚔️ {t('common_fight')}!
             </GameButton>
@@ -144,11 +167,6 @@ export default function LocationInteractionScreen() {
           {isChest && (
             <GameButton variant="gold" size="lg" fullWidth onClick={handleOpenChest}>
               🔓 {t('location_openChest')}
-            </GameButton>
-          )}
-          {isEvent && (
-            <GameButton variant="primary" size="lg" fullWidth>
-              🌟 {t('location_participate')}
             </GameButton>
           )}
           <GameButton variant="outline" size="md" fullWidth onClick={() => navigate(-1)}>

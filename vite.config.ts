@@ -9,6 +9,12 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      "/api": {
+        target: "https://share-ona5.onrender.com",
+        changeOrigin: true,
+      },
+    },
   },
   plugins: [react()],
   resolve: {

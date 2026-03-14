@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { GameProvider } from "@/context/GameContext";
 import { IntlProviderWrapper } from "@/i18n/IntlProviderWrapper";
 
+import { Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LoadingScreen from "./pages/LoadingScreen";
@@ -18,7 +19,6 @@ import BattleScreen from "./pages/BattleScreen";
 import LootScreen from "./pages/LootScreen";
 import CharacterScreen from "./pages/CharacterScreen";
 import InventoryScreen from "./pages/InventoryScreen";
-import QuestScreen from "./pages/QuestScreen";
 import ShopScreen from "./pages/ShopScreen";
 import SettingsScreen from "./pages/SettingsScreen";
 import PatternsScreen from "./pages/PatternsScreen";
@@ -45,7 +45,7 @@ const App = () => (
               <Route path="/loot" element={<LootScreen />} />
               <Route path="/character" element={<CharacterScreen />} />
               <Route path="/inventory" element={<InventoryScreen />} />
-              <Route path="/quests" element={<QuestScreen />} />
+              <Route path="/quests" element={<Navigate to="/map" replace />} />
               <Route path="/shop" element={<ShopScreen />} />
               <Route path="/settings" element={<SettingsScreen />} />
               <Route path="/patterns" element={<PatternsScreen />} />

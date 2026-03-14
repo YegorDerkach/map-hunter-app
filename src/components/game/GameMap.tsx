@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { GoogleMap, OverlayViewF, useJsApiLoader } from '@react-google-maps/api';
 import type { MapMarkerData } from '@/types/game';
 
@@ -15,7 +16,7 @@ interface GameMapProps {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 /** When true, never call Geolocation API — player is always Kyiv (no permission prompt). */
-const GPS_STUB = true;
+const GPS_STUB = false;
 
 const DEFAULT_CENTER: LatLng = { lat: 50.4501, lng: 30.5234 }; // Kyiv
 const DEFAULT_ZOOM = 14;
@@ -28,7 +29,6 @@ const MAP_CONTAINER_STYLE: React.CSSProperties = {
 const MARKER_META: Record<string, { color: string; emoji: string }> = {
   monster: { color: '#ef4444', emoji: '⚔️' },
   chest:   { color: '#f59e0b', emoji: '📦' },
-  event:   { color: '#a855f7', emoji: '🌟' },
 };
 
 const LIGHT_MAP_STYLES: google.maps.MapTypeStyle[] = [
@@ -136,14 +136,28 @@ function GameMarkerOverlay({
 const LOCATION_ERROR_MESSAGE =
   'Location is blocked. To enable: click the lock or tune icon next to the URL → Site settings → Location → Allow.';
 
+const LOCATION_UNAVAILABLE_MESSAGE =
+  'Location could not be determined (e.g. indoors or weak signal). Try again or move to an area with better reception.';
+
+const LOCATION_OPTIONS: PositionOptions = {
+  enableHighAccuracy: true,
+  timeout: 15000,
+  maximumAge: 60000,
+};
+
+const LOCATION_OPTIONS_FALLBACK: PositionOptions = {
+  enableHighAccuracy: false,
+  timeout: 10000,
+  maximumAge: 30000,
+};
+
 function MapRenderer({
   markers,
   onMarkerClick,
   onCenterRef,
 }: GameMapProps) {
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
-  // Stub: start as if in Kyiv; no auto GPS request
-  const [playerLocation, setPlayerLocation] = useState<LatLng | null>(DEFAULT_CENTER);
+  const [playerLocation, setPlayerLocation] = useState<LatLng | null>(GPS_STUB ? DEFAULT_CENTER : null);
   const [locationError, setLocationError] = useState<'denied' | 'unavailable' | 'timeout' | null>(null);
   const [locationBannerDismissed, setLocationBannerDismissed] = useState(false);
   const mapCenter = playerLocation ?? DEFAULT_CENTER;
@@ -154,6 +168,31 @@ function MapRenderer({
     else if (error.code === 2) setLocationError('unavailable');
     else setLocationError('timeout');
   }, []);
+
+  const requestLocation = useCallback(
+    (useFallback = false) => {
+      if (!mapInstance) return;
+      const options = useFallback ? LOCATION_OPTIONS_FALLBACK : LOCATION_OPTIONS;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setPlayerLocation(loc);
+          setLocationError(null);
+          mapInstance.panTo(loc);
+          mapInstance.setZoom(DEFAULT_ZOOM);
+        },
+        (err: GeolocationPositionError) => {
+          if (!useFallback && (err.code === 2 || err.code === 3)) {
+            window.setTimeout(() => requestLocation(true), 2000);
+            return;
+          }
+          handleLocationError(err);
+        },
+        options,
+      );
+    },
+    [mapInstance, handleLocationError],
+  );
 
   const centerOnPlayer = useCallback(() => {
     if (GPS_STUB) {
@@ -169,18 +208,20 @@ function MapRenderer({
       return;
     }
     setLocationBannerDismissed(false);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setPlayerLocation(loc);
-        setLocationError(null);
-        mapInstance?.panTo(loc);
-        mapInstance?.setZoom(DEFAULT_ZOOM);
-      },
-      handleLocationError,
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
-    );
-  }, [mapInstance, handleLocationError]);
+    if (mapInstance) {
+      requestLocation();
+    } else {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setPlayerLocation(loc);
+          setLocationError(null);
+        },
+        handleLocationError,
+        LOCATION_OPTIONS,
+      );
+    }
+  }, [mapInstance, handleLocationError, requestLocation]);
 
   useEffect(() => {
     onCenterRef?.(centerOnPlayer);
@@ -208,9 +249,15 @@ function MapRenderer({
     return () => { clearTimeout(t); window.removeEventListener('resize', trigger); };
   }, [mapInstance]);
 
-  // GPS stub: no auto-request on mount; player starts in Kyiv (DEFAULT_CENTER)
-  // User can still tap GPS button to try real location
-  // useEffect(() => { ... getCurrentPosition ... }, []) removed for stub
+  // Request real GPS on mount when not using stub (uses retry on unavailable/timeout)
+  useEffect(() => {
+    if (GPS_STUB || !mapInstance) return;
+    if (!navigator.geolocation) {
+      setLocationError('unavailable');
+      return;
+    }
+    requestLocation();
+  }, [GPS_STUB, mapInstance, requestLocation]);
 
   const showLocationBanner = locationError && !locationBannerDismissed;
 
@@ -219,7 +266,7 @@ function MapRenderer({
       {showLocationBanner && (
         <div className="absolute top-2 left-2 right-2 z-20 flex items-start gap-2 rounded-lg border-2 border-amber-500/80 bg-amber-50 px-3 py-2 shadow-lg">
           <p className="flex-1 text-xs text-amber-900">
-            {LOCATION_ERROR_MESSAGE}
+            {locationError === 'denied' ? LOCATION_ERROR_MESSAGE : LOCATION_UNAVAILABLE_MESSAGE}
           </p>
           <button
             type="button"
@@ -315,7 +362,30 @@ function GoogleMapLoader(props: GameMapProps & { apiKey: string }) {
 
 // ─── Placeholder map (no API key or demo) ─────────────────────────────────────
 
-function PlaceholderMapView({ markers, onMarkerClick }: GameMapProps) {
+function PlaceholderMapView({ markers, onMarkerClick, onCenterRef }: GameMapProps) {
+  const [locationLabel, setLocationLabel] = useState<string>('Київ (заглушка)');
+
+  const requestLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setLocationLabel(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        toast.success(`Location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+      },
+      () => toast.error('Location access denied or unavailable'),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  }, []);
+
+  useEffect(() => {
+    onCenterRef?.(requestLocation);
+    return () => onCenterRef?.(() => {});
+  }, [onCenterRef, requestLocation]);
+
   return (
     <div className="w-full h-full min-h-[300px] game-gradient-sky relative overflow-hidden">
       {/* Grid pattern */}
@@ -328,9 +398,9 @@ function PlaceholderMapView({ markers, onMarkerClick }: GameMapProps) {
           backgroundSize: '32px 32px',
         }}
       />
-      {/* You are here: Kyiv */}
+      {/* You are here */}
       <div className="absolute bottom-14 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-lg bg-primary/90 text-primary-foreground text-xs font-display font-bold z-10 shadow-lg">
-        📍 Київ (заглушка)
+        📍 {locationLabel}
       </div>
       {/* Markers at x% / y% */}
       {markers.map((marker) => {

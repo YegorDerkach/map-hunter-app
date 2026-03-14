@@ -1,15 +1,5 @@
 import { useState, useCallback } from "react";
-
-// const getCookie = (name: string): string | null => {
-//     const cookies = document.cookie.split(';');
-
-//     for (let cookie of cookies) {
-//         const [key, value] = cookie.trim().split('=');
-//         if (key === name) return value;
-//     }
-
-//     return null;
-// };
+import { AUTH_TOKEN_KEY } from "@/service/auth";
 
 interface HttpReturn<T> {
     request: (url: string, method?: string, body?: any) => Promise<T>;
@@ -26,7 +16,10 @@ export const useHttp = <T = any>(): HttpReturn<T> => {
         setLoading(true);
 
         try {
-            const token = '';
+            let token: string | null = null;
+            try {
+                token = localStorage.getItem(AUTH_TOKEN_KEY);
+            } catch {}
 
             const headers: Record<string, string> = {
                 "Content-Type": "application/json"

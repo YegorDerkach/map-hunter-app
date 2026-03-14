@@ -21,13 +21,6 @@ const markerConfig = {
     animation: 'animate-pulse-glow',
     label: 'text-[hsl(var(--game-yellow))]',
   },
-  event: {
-    bg: 'bg-[hsl(var(--game-purple))]',
-    ring: 'ring-[hsl(var(--game-purple)/0.4)]',
-    emoji: '⭐',
-    animation: 'animate-bounce-in',
-    label: 'text-[hsl(var(--game-purple))]',
-  },
 };
 
 export function MapMarker({ marker, onClick }: MapMarkerProps) {
@@ -49,11 +42,7 @@ export function MapMarker({ marker, onClick }: MapMarkerProps) {
           'shadow-lg transition-transform group-hover:scale-110'
         )}
       >
-        {marker.type === 'monster'
-          ? '⚔️'
-          : marker.type === 'chest'
-          ? '📦'
-          : '⭐'}
+        {marker.type === 'monster' ? '⚔️' : '📦'}
       </div>
       <span
         className={cn(

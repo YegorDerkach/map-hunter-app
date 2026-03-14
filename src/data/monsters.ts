@@ -97,7 +97,4 @@ export const mapMarkers: MapMarkerData[] = [
   { id: 'c1', type: 'chest', x: 75, y: 25, label: 'Silver Chest' },
   { id: 'c2', type: 'chest', x: 18, y: 72, label: 'Old Crate' },
   { id: 'c3', type: 'chest', x: 50, y: 85, label: 'Golden Chest' },
-  // Events
-  { id: 'e1', type: 'event', x: 50, y: 38, label: 'Market Day' },
-  { id: 'e2', type: 'event', x: 82, y: 68, label: 'Meteor Strike' },
 ];

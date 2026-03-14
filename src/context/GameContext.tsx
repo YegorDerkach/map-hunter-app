@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { GameState, Player, InventoryItem, BattleState, Locale } from '@/types/game';
+import { GameState, Player, InventoryItem, BattleState, Locale, AuthUser } from '@/types/game';
+import type { Enemy } from '@/types/api';
 import { startingInventory } from '@/data/items';
 import { monsters } from '@/data/monsters';
+import { getStoredToken, clearAuth } from '@/service/auth';
 
 const LOCALE_STORAGE_KEY = 'map-hunter-locale';
 
@@ -29,9 +31,20 @@ const initialPlayer: Player = {
   avatarEmoji: '🧙',
 };
 
+function getInitialAuth(): { token: string | null; authUser: AuthUser | null } {
+  try {
+    const token = getStoredToken();
+    return { token, authUser: token ? {} as AuthUser : null };
+  } catch {
+    return { token: null, authUser: null };
+  }
+}
+
+const initialAuth = getInitialAuth();
+
 const initialState: GameState = {
   player: initialPlayer,
-  isLoggedIn: false,
+  isLoggedIn: !!initialAuth.token,
   tutorialComplete: false,
   inventory: startingInventory,
   activeBattle: null,
@@ -42,23 +55,31 @@ const initialState: GameState = {
   },
   lastLoot: [],
   locale: getInitialLocale(),
+  token: initialAuth.token,
+  authUser: initialAuth.authUser,
+  usedNonBossGameIds: [],
 };
 
 export type GameAction =
   | { type: 'LOGIN'; payload: { name: string } }
+  | { type: 'LOGIN_SERVER'; payload: { token: string; user: AuthUser } }
   | { type: 'COMPLETE_TUTORIAL' }
   | { type: 'GAIN_XP'; payload: number }
   | { type: 'GAIN_GOLD'; payload: number }
   | { type: 'SPEND_GOLD'; payload: number }
   | { type: 'ADD_ITEM'; payload: InventoryItem }
   | { type: 'START_BATTLE'; payload: string }
+  | { type: 'START_SERVER_BATTLE'; payload: { enemy: Enemy } }
   | { type: 'DEAL_DAMAGE'; payload: { target: 'player' | 'enemy'; amount: number } }
   | { type: 'HEAL_PLAYER'; payload: number }
   | { type: 'END_BATTLE'; payload: { won: boolean } }
   | { type: 'TOGGLE_SETTING'; payload: keyof GameState['settings'] }
   | { type: 'LOGOUT' }
   | { type: 'SET_LOOT'; payload: InventoryItem[] }
-  | { type: 'SET_LOCALE'; payload: Locale };
+  | { type: 'SET_LOCALE'; payload: Locale }
+  | { type: 'RECORD_NON_BOSS_GAME_USED'; payload: number }
+  | { type: 'RESET_NON_BOSS_GAMES' }
+  | { type: 'SYNC_PLAYER_FROM_SERVER'; payload: AuthUser };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -67,6 +88,26 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         ...state,
         isLoggedIn: true,
         player: { ...state.player, name: action.payload.name },
+        token: null,
+        authUser: null,
+      };
+    case 'LOGIN_SERVER':
+      return {
+        ...state,
+        isLoggedIn: true,
+        token: action.payload.token,
+        authUser: action.payload.user,
+        player: {
+          ...state.player,
+          name: action.payload.user.nickname || state.player.name,
+          level: action.payload.user.lvl ?? state.player.level,
+          xp: action.payload.user.xp ?? state.player.xp,
+          gold: action.payload.user.coins ?? state.player.gold,
+          gems: action.payload.user.gems ?? state.player.gems,
+          hp: action.payload.user.hp ?? state.player.hp,
+          maxHp: action.payload.user.hp ?? state.player.maxHp,
+          attack: action.payload.user.damage ?? state.player.attack,
+        },
       };
 
     case 'COMPLETE_TUTORIAL':
@@ -128,6 +169,32 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         playerHp: state.player.hp,
         turn: 'player',
         log: [`Battle started against ${monster.name}!`],
+      };
+      return { ...state, activeBattle: battle };
+    }
+
+    case 'START_SERVER_BATTLE': {
+      const enemy = action.payload.enemy;
+      const syntheticMonster = {
+        id: enemy.id,
+        name: enemy.name,
+        emoji: '⚔️',
+        level: 1,
+        hp: enemy.hp,
+        maxHp: enemy.hp,
+        attack: enemy.damageToEnemy,
+        defense: 0,
+        xpReward: 0,
+        goldReward: 0,
+        lootTable: [] as string[],
+      };
+      const battle: BattleState = {
+        monster: syntheticMonster,
+        playerHp: state.player.hp,
+        turn: 'player',
+        log: [`Battle started against ${enemy.name}!`],
+        serverEnemyId: enemy.id,
+        isBoss: enemy.isBoss,
       };
       return { ...state, activeBattle: battle };
     }
@@ -211,11 +278,42 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'SET_LOOT':
       return { ...state, lastLoot: action.payload };
 
+    case 'RECORD_NON_BOSS_GAME_USED':
+      return {
+        ...state,
+        usedNonBossGameIds: state.usedNonBossGameIds.includes(action.payload)
+          ? state.usedNonBossGameIds
+          : [...state.usedNonBossGameIds, action.payload],
+      };
+
+    case 'RESET_NON_BOSS_GAMES':
+      return { ...state, usedNonBossGameIds: [] };
+
+    case 'SYNC_PLAYER_FROM_SERVER': {
+      const u = action.payload;
+      return {
+        ...state,
+        authUser: u,
+        player: {
+          ...state.player,
+          name: u.nickname ?? state.player.name,
+          level: u.lvl ?? state.player.level,
+          xp: u.xp ?? state.player.xp,
+          gold: u.coins ?? state.player.gold,
+          gems: u.gems ?? state.player.gems,
+          hp: u.hp ?? state.player.hp,
+          maxHp: u.hp ?? state.player.maxHp,
+          attack: u.damage ?? state.player.attack,
+        },
+      };
+    }
+
     case 'SET_LOCALE':
       return { ...state, locale: action.payload };
 
     case 'LOGOUT':
-      return { ...initialState };
+      clearAuth();
+      return { ...initialState, token: null, authUser: null, usedNonBossGameIds: [] };
 
     default:
       return state;
