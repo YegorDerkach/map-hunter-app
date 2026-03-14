@@ -24,7 +24,8 @@ export {
   getProfilePhotoUrl,
   getEnemyPhotoUrl,
 } from './photo';
-export { getStreet } from './map';
+export { getStreet, getQuiz } from './map';
+export type { QuizQuestion } from './map';
 export { generateBattle, endBattle } from './battles';
 export {
   getPrivateMessages,

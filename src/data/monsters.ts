@@ -97,6 +97,6 @@ export const mapMarkers: MapMarkerData[] = [
   { id: 'c1', type: 'chest', x: 75, y: 25, label: 'Silver Chest' },
   { id: 'c2', type: 'chest', x: 18, y: 72, label: 'Old Crate' },
   { id: 'c3', type: 'chest', x: 50, y: 85, label: 'Golden Chest' },
-  // Dungeon entrance (fallback static — Kyiv, Maidan Nezalezhnosti)
-  { id: 'dungeon_static_1', type: 'dungeon', x: 50, y: 50, label: '⚔️ Arena Entrance', lat: 50.4501, lng: 30.5234 },
+  // Dungeon entrance (fallback static — Kyiv, fox location)
+  { id: 'dungeon_static_1', type: 'dungeon', x: 0, y: 99, label: '⚔️ Arena Entrance', lat: 50.43927, lng: 30.42868 },
 ];

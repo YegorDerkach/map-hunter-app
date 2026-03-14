@@ -8,6 +8,8 @@ import { GameProvider } from "@/context/GameContext";
 import { IntlProviderWrapper } from "@/i18n/IntlProviderWrapper";
 
 import { Navigate } from "react-router-dom";
+import { useAirRaidAlert } from "@/hooks/useAirRaidAlert";
+import { AirRaidAlert } from "@/components/game/AirRaidAlert";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LoadingScreen from "./pages/LoadingScreen";
@@ -26,6 +28,34 @@ import DungeonEntranceScreen from "./pages/DungeonEntranceScreen";
 
 const queryClient = new QueryClient();
 
+function AppContent() {
+  const { showDialog, setShowDialog, regionName } = useAirRaidAlert();
+  return (
+    <>
+      <AirRaidAlert open={showDialog} onClose={() => setShowDialog(false)} regionName={regionName} />
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/loading" element={<LoadingScreen />} />
+        <Route path="/login" element={<LoginScreen />} />
+        <Route path="/tutorial" element={<TutorialScreen />} />
+        <Route path="/map" element={<MainMapScreen />} />
+        <Route path="/location/:id" element={<LocationInteractionScreen />} />
+        <Route path="/dungeon/:id" element={<DungeonEntranceScreen />} />
+        <Route path="/battle/:id" element={<BattleScreen />} />
+        <Route path="/loot" element={<LootScreen />} />
+        <Route path="/character" element={<CharacterScreen />} />
+        <Route path="/inventory" element={<InventoryScreen />} />
+        <Route path="/quests" element={<Navigate to="/map" replace />} />
+        <Route path="/shop" element={<ShopScreen />} />
+        <Route path="/settings" element={<SettingsScreen />} />
+        <Route path="/patterns" element={<PatternsScreen />} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
+  );
+}
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false}>
     <QueryClientProvider client={queryClient}>
@@ -35,25 +65,7 @@ const App = () => (
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <GameProvider>
             <IntlProviderWrapper>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/loading" element={<LoadingScreen />} />
-              <Route path="/login" element={<LoginScreen />} />
-              <Route path="/tutorial" element={<TutorialScreen />} />
-              <Route path="/map" element={<MainMapScreen />} />
-              <Route path="/location/:id" element={<LocationInteractionScreen />} />
-              <Route path="/dungeon/:id" element={<DungeonEntranceScreen />} />
-              <Route path="/battle/:id" element={<BattleScreen />} />
-              <Route path="/loot" element={<LootScreen />} />
-              <Route path="/character" element={<CharacterScreen />} />
-              <Route path="/inventory" element={<InventoryScreen />} />
-              <Route path="/quests" element={<Navigate to="/map" replace />} />
-              <Route path="/shop" element={<ShopScreen />} />
-              <Route path="/settings" element={<SettingsScreen />} />
-              <Route path="/patterns" element={<PatternsScreen />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+              <AppContent />
             </IntlProviderWrapper>
           </GameProvider>
         </BrowserRouter>

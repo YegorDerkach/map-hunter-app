@@ -6,7 +6,8 @@ import { GameButton } from '@/components/game/GameButton';
 import { ScreenTransition } from '@/components/game/ScreenTransition';
 import { BattleArea } from '@/components/game/BattleArea';
 import { useGame } from '@/context/GameContext';
-import { endBattle, killEnemy, getStreet } from '@/api';
+import { endBattle, killEnemy, getStreet, getQuiz } from '@/api';
+import type { QuizQuestion } from '@/api';
 import { monsters } from '@/data/monsters';
 import { items } from '@/data/items';
 import {
@@ -52,7 +53,15 @@ export default function BattleScreen() {
   const [factKey, setFactKey] = useState(0);
   const [gameActive, setGameActive] = useState(false);
   const [dpadRect, setDpadRect] = useState<{ top: number; left: number; size: number } | null>(null);
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [quizRound, setQuizRound] = useState(0);
+  const [quizAnswered, setQuizAnswered] = useState<'correct' | 'wrong' | null>(null);
+  const [quizSelectedIdx, setQuizSelectedIdx] = useState<number | null>(null);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [currentGameIndex, setCurrentGameIndex] = useState<number | null>(null);
+
   const miniGameRef    = useRef<MiniGame | null>(null);
+  const quizEndGameRef = useRef<(() => void) | null>(null);
   const playerHpRef    = useRef<HTMLDivElement>(null);
   const dispatchRef    = useRef(dispatch);
   const battleEndedRef = useRef(false);
@@ -131,6 +140,14 @@ export default function BattleScreen() {
     if (battle.monster.hp <= 0) {
       battleEndedRef.current = true;
       const serverEnemyId = battle.serverEnemyId;
+      // Dispatch cleanup first so the new route mounts with clean state
+      dispatch({ type: 'SET_LOOT', payload: [{ item: items.health_potion, quantity: 1 }] });
+      if (!serverEnemyId) {
+        dispatch({ type: 'GAIN_XP', payload: battle.monster.xpReward });
+        dispatch({ type: 'GAIN_GOLD', payload: battle.monster.goldReward });
+      }
+      dispatch({ type: 'END_BATTLE', payload: { won: true } });
+      navigate('/loot');
       if (serverEnemyId) {
         killEnemy(serverEnemyId)
           .catch(() => {})
@@ -141,15 +158,11 @@ export default function BattleScreen() {
               })
               .catch(() => {});
           });
-      } else {
-        dispatch({ type: 'GAIN_XP', payload: battle.monster.xpReward });
-        dispatch({ type: 'GAIN_GOLD', payload: battle.monster.goldReward });
-        dispatch({ type: 'SET_LOOT', payload: [{ item: items.health_potion, quantity: 1 }] });
       }
-      navigate('/loot');
-      dispatch({ type: 'END_BATTLE', payload: { won: true } });
     } else if (battle.playerHp <= 0) {
       battleEndedRef.current = true;
+      dispatch({ type: 'END_BATTLE', payload: { won: false } });
+      navigate('/map');
       if (battle.serverEnemyId) {
         endBattle()
           .then((user) => {
@@ -157,8 +170,6 @@ export default function BattleScreen() {
           })
           .catch(() => {});
       }
-      navigate('/map');
-      dispatch({ type: 'END_BATTLE', payload: { won: false } });
     }
   }, [battle, dispatch, navigate]);
 
@@ -172,6 +183,30 @@ export default function BattleScreen() {
   const handleEscape = () => {
     navigate('/map');
     dispatch({ type: 'END_BATTLE', payload: { won: false } });
+  };
+
+  const handleQuizAnswer = (optionIndex: number) => {
+    if (quizAnswered !== null) return;
+    const q = quizQuestions[quizRound];
+    if (!q) return;
+    const isCorrect = optionIndex === q.truthIndex;
+    setQuizAnswered(isCorrect ? 'correct' : 'wrong');
+    setQuizSelectedIdx(optionIndex);
+    if (isCorrect) {
+      const amount = Math.ceil((resolvedMonster?.maxHp ?? 100) / 3);
+      if (amount > 0) dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount } });
+    } else {
+      dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'player', amount: 34 } });
+    }
+    setTimeout(() => {
+      setQuizAnswered(null);
+      setQuizSelectedIdx(null);
+      if (quizRound >= 2) {
+        quizEndGameRef.current?.();
+      } else {
+        setQuizRound((r) => r + 1);
+      }
+    }, 900);
   };
 
   const { t, tMonster } = useT();
@@ -246,8 +281,48 @@ export default function BattleScreen() {
           </div>
         )}
 
-        {/* Battle arena — mini-game canvas when playing, decorative placeholder when idle */}
-        {phase === 'playing' ? (
+        {/* Battle arena — quiz overlay / mini-game canvas / idle placeholder */}
+        {phase === 'playing' && currentGameIndex === 4 ? (
+          <div className="game-panel flex-1 min-h-[140px] sm:min-h-[200px] rounded-xl border-2 border-border bg-card relative overflow-hidden flex flex-col items-center justify-center gap-3 p-4 z-30">
+            {quizLoading ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                <p className="text-xs text-muted-foreground font-display animate-pulse">Loading question…</p>
+              </div>
+            ) : quizQuestions[quizRound] ? (
+              <>
+                <div className="text-xs font-display text-muted-foreground tracking-wide uppercase">
+                  Round {quizRound + 1} / 3 — Which is TRUE?
+                </div>
+                <div className="w-full flex flex-col gap-2">
+                  {quizQuestions[quizRound].options.map((opt, idx) => {
+                    const isTruth = idx === quizQuestions[quizRound].truthIndex;
+                    const isSelected = idx === quizSelectedIdx;
+                    let btnStyle = 'bg-card border-border text-foreground hover:bg-muted';
+                    if (quizAnswered) {
+                      if (isTruth) btnStyle = 'bg-[hsl(var(--game-green)/0.15)] border-[hsl(var(--game-green))] text-[hsl(var(--game-green))]';
+                      else if (isSelected && quizAnswered === 'wrong') btnStyle = 'bg-[hsl(var(--game-red)/0.15)] border-[hsl(var(--game-red))] text-[hsl(var(--game-red))]';
+                      else btnStyle = 'opacity-40 bg-card border-border text-muted-foreground';
+                    }
+                    return (
+                      <button
+                        key={idx}
+                        disabled={quizAnswered !== null}
+                        onClick={() => handleQuizAnswer(idx)}
+                        className={`w-full rounded-lg border-2 px-3 py-2 text-xs font-display text-left leading-snug transition-all ${btnStyle}`}
+                        style={{ WebkitTapHighlightColor: 'transparent' }}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground font-display text-center animate-pulse">Preparing quiz…</p>
+            )}
+          </div>
+        ) : phase === 'playing' ? (
           <BattleArea
             isEnemyTurn={battle?.turn === 'enemy'}
             className={gameActive ? 'relative z-30' : undefined}
@@ -255,16 +330,17 @@ export default function BattleScreen() {
               miniGameRef.current?.destroy();
               const isBoss = !!battle?.isBoss;
               let used = state.usedNonBossGameIds;
-              if (used.length >= 3) {
+              if (used.length >= 4) {
                 dispatchRef.current({ type: 'RESET_NON_BOSS_GAMES' });
                 used = [];
               }
-              const nonBossIndices = [0, 1, 2];
+              const nonBossIndices = [0, 1, 2, 4];
               const available = nonBossIndices.filter((i) => !used.includes(i));
               const gameIndex = isBoss ? 3 : available[Math.floor(Math.random() * available.length)];
               if (!isBoss) {
                 dispatchRef.current({ type: 'RECORD_NON_BOSS_GAME_USED', payload: gameIndex });
               }
+              setCurrentGameIndex(gameIndex);
 
               const commonOptions = {
                 onPlayerHit: (amount?: number) => {
@@ -285,9 +361,24 @@ export default function BattleScreen() {
                 setGameActive(false);
                 setPhase('idle');
                 setFactKey((k) => k + 1);
+                setCurrentGameIndex(null);
               };
 
-              if (gameIndex === 3) {
+              if (gameIndex === 4) {
+                // Quiz game — no Pixi canvas; React overlay handles everything
+                miniGameRef.current = { destroy: () => {} };
+                quizEndGameRef.current = endGame;
+                setQuizRound(0);
+                setQuizAnswered(null);
+                setQuizSelectedIdx(null);
+                setQuizLoading(true);
+                const lat = battle?.lat ?? 50.4501;
+                const lng = battle?.lng ?? 30.5234;
+                Promise.all([getQuiz(lat, lng), getQuiz(lat, lng), getQuiz(lat, lng)])
+                  .then((qs) => setQuizQuestions(qs))
+                  .catch(() => setQuizQuestions([]))
+                  .finally(() => setQuizLoading(false));
+              } else if (gameIndex === 3) {
                 miniGameRef.current = createTicTacToeGame(
                   app,
                   endGame,
