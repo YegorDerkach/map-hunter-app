@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Camera, Heart, Sword, Shield, Zap, Clover, Star, Coins, Gem, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { GameShell } from '@/components/game/GameShell';
@@ -15,8 +15,9 @@ import {
 } from '@/components/ui/dialog';
 import { useGame } from '@/context/GameContext';
 import { useT } from '@/i18n/useT';
-import { getProfilePhotoUrl, generateProfilePhoto } from '@/api';
+import { generateProfilePhoto } from '@/api';
 import type { AvatarStyle } from '@/api';
+import { useAvatarUrl } from '@/hooks/useAvatarUrl';
 
 const AVATAR_STYLES: { id: AvatarStyle; emoji: string; label: string; desc: string }[] = [
   { id: 'anime',     emoji: '🎌', label: 'Anime',     desc: 'Яскравий аніме-арт' },
@@ -44,21 +45,14 @@ export default function CharacterScreen() {
   const { state } = useGame();
   const { player } = state;
   const { t } = useT();
-  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
+  const { avatarUrl: profilePhotoUrl, setAvatarUrl: setProfilePhotoUrl } = useAvatarUrl(
+    state.authUser?.id,
+    state.token ?? null,
+  );
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [styleDialogOpen, setStyleDialogOpen] = useState(false);
   const [pendingStyle, setPendingStyle] = useState<AvatarStyle | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!state.token) {
-      setProfilePhotoUrl(null);
-      return;
-    }
-    getProfilePhotoUrl()
-      .then((url) => setProfilePhotoUrl(url || null))
-      .catch(() => setProfilePhotoUrl(null));
-  }, [state.token]);
 
   const handleAvatarClick = () => setStyleDialogOpen(true);
 
