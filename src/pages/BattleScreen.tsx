@@ -43,7 +43,7 @@ export default function BattleScreen() {
   const [gameActive, setGameActive] = useState(false);
   const [dpadRect, setDpadRect] = useState<{ top: number; left: number; size: number } | null>(null);
   const miniGameRef    = useRef<MiniGame | null>(null);
-  const helperRef      = useRef<HTMLDivElement>(null);
+  const playerHpRef    = useRef<HTMLDivElement>(null);
   const dispatchRef    = useRef(dispatch);
   const battleEndedRef = useRef(false);
   dispatchRef.current = dispatch;
@@ -51,14 +51,26 @@ export default function BattleScreen() {
   // Destroy game on unmount to prevent ticker running after navigation
   useEffect(() => () => { miniGameRef.current?.destroy(); }, []);
 
-  // Compute D-pad position/size relative to helper image when game starts
+  // D-pad: size from screen, then centered between bottom of player HP bar and bottom of screen
   useEffect(() => {
     if (!gameActive) { setDpadRect(null); return; }
-    const el = helperRef.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const size = r.height * 0.95;
-    setDpadRect({ size, top: r.top + (r.height - size) / 2 - size * 0.1, left: window.innerWidth / 2 - size / 2 });
+    const hpEl = playerHpRef.current;
+    if (!hpEl) return;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const hpRect = hpEl.getBoundingClientRect();
+    const hpBarBottom = hpRect.bottom;
+    const screenBottom = h;
+    const availableHeight = screenBottom - hpBarBottom;
+    // Scale size with screen (smaller dimension), +10%, then cap to fit zone
+    const baseSize = Math.max(100, Math.min(200, Math.min(w, h) * 0.22)) * 1.1;
+    const size = Math.min(baseSize, availableHeight * 0.9);
+    const centerY = (hpBarBottom + screenBottom) / 2;
+    setDpadRect({
+      size,
+      top: centerY - size / 2,
+      left: w / 2 - size / 2,
+    });
   }, [gameActive]);
 
   // Start battle on mount only (removing state.activeBattle from deps prevents re-start after END_BATTLE)
@@ -194,7 +206,7 @@ export default function BattleScreen() {
         />
 
         {/* Player HP — above overlay (z-30) so it stays visible and updates in real time */}
-        <div className="game-panel p-2 relative z-30">
+        <div ref={playerHpRef} className="game-panel p-2 relative z-30">
           <HPBar
             current={battle?.playerHp ?? state.player.hp}
             max={state.player.maxHp}
@@ -208,7 +220,7 @@ export default function BattleScreen() {
         <div className="flex w-full gap-2 items-stretch mt-auto">
           {/* Helper image: aspect 3:5, small inset so image and border aren't clipped */}
           <div className="w-1/4 min-w-0 flex justify-center items-center self-stretch min-h-0 py-0.5">
-            <div ref={helperRef} className="h-full max-w-full max-h-full aspect-[3/5] flex-shrink-0">
+            <div className="h-full max-w-full max-h-full aspect-[3/5] flex-shrink-0">
               <img src="/helper.png" alt="" className="w-full h-full object-cover object-center rounded-lg border-2 border-border shadow-[0_2px_0_hsl(var(--border))]" />
             </div>
           </div>
