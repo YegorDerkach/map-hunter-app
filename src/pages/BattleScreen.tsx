@@ -99,13 +99,13 @@ export default function BattleScreen() {
     if (!lat || !lng) return;
     let cancelled = false;
     setFactLoading(true);
-    getStreet(lat, lng)
+    getStreet(lat, lng, state.locale)
       .then((text) => { if (!cancelled) setFact(text); })
       .catch(() => { if (!cancelled) setFact(null); })
       .finally(() => { if (!cancelled) setFactLoading(false); });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, state.activeBattle?.lat, state.activeBattle?.lng]);
+  }, [phase, state.activeBattle?.lat, state.activeBattle?.lng, state.locale]);
 
   const battle = state.activeBattle;
   const monster = battle?.monster ?? monsters.find((m) => m.id === id);
@@ -333,24 +333,24 @@ export default function BattleScreen() {
               </div>
               <div
                 key={phase === 'idle' ? factKey : 'chat'}
-                className="flex-1 min-w-0 flex items-center justify-center overflow-hidden animate-slide-up"
+                className="flex-1 min-w-0 min-h-0 overflow-y-auto animate-slide-up"
               >
                 {phase === 'idle' ? (
                   factLoading ? (
-                    <p className="text-xs text-muted-foreground font-display text-center animate-pulse">
+                    <p className="text-xs text-muted-foreground font-display text-center animate-pulse py-1">
                       {t('battle_factLoading')}
                     </p>
                   ) : fact ? (
-                    <p className="text-xs font-display text-center leading-relaxed overflow-auto max-h-full">
+                    <p className="text-xs font-display text-center leading-relaxed w-full py-1">
                       {fact}
                     </p>
                   ) : (
-                    <p className="text-xs text-muted-foreground font-display text-center">
+                    <p className="text-xs text-muted-foreground font-display text-center py-1">
                       {t('battle_readyToFight')}
                     </p>
                   )
                 ) : (
-                  <p className="text-sm text-muted-foreground font-display text-center max-w-full break-words line-clamp-3">
+                  <p className="text-sm text-muted-foreground font-display text-center w-full break-words py-1">
                     {t('battle_chooseAction')}
                   </p>
                 )}
