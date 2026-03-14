@@ -232,7 +232,7 @@ export default function BattleScreen() {
           </div>
         )}
 
-        {/* Battle arena — conditional: fact panel in idle, mini-game canvas in playing */}
+        {/* Battle arena — mini-game canvas when playing, decorative placeholder when idle */}
         {phase === 'playing' ? (
           <BattleArea
             isEnemyTurn={battle?.turn === 'enemy'}
@@ -299,27 +299,8 @@ export default function BattleScreen() {
             }}
           />
         ) : (
-          <div
-            key={factKey}
-            className="game-panel flex-1 min-h-[140px] flex flex-col gap-3 p-3 animate-slide-up"
-          >
-            <div className="flex-1 flex items-center justify-center overflow-auto">
-              {factLoading ? (
-                <p className="text-sm text-muted-foreground font-display animate-pulse text-center">…</p>
-              ) : fact ? (
-                <p className="text-sm font-display text-center leading-relaxed">{fact}</p>
-              ) : (
-                <p className="text-sm text-muted-foreground font-display text-center">⚔️ {t('battle_play')}</p>
-              )}
-            </div>
-            <GameButton
-              variant="gold"
-              size="lg"
-              fullWidth
-              onClick={() => setPhase('playing')}
-            >
-              ▶ {t('battle_play')}
-            </GameButton>
+          <div className="game-panel flex-1 min-h-[140px] sm:min-h-[200px] rounded-xl border-2 border-dashed border-border bg-[var(--gradient-battle)] relative overflow-hidden shrink flex items-center justify-center">
+            <span className="text-5xl opacity-20 select-none">⚔️</span>
           </div>
         )}
 
@@ -343,30 +324,63 @@ export default function BattleScreen() {
             </div>
           </div>
           <div className="flex-1 min-w-0 flex flex-col gap-2 min-h-0">
-            {/* Chat bubble — cloud from the character image */}
+            {/* Chat bubble — fact text in idle, battle prompt in playing */}
             <div className="chat-bubble flex-1 min-h-0 pl-4 pr-3 pt-8 pb-2 flex flex-col relative ml-1">
               <div className="absolute top-1 right-1 game-panel px-1.5 py-0.5 leading-none shrink-0">
-                <span className="text-xs font-display font-bold text-muted-foreground">{t('common_chat')}</span>
+                <span className="text-xs font-display font-bold text-muted-foreground">
+                  {phase === 'idle' ? t('battle_factLabel') : t('common_chat')}
+                </span>
               </div>
-              <div className="flex-1 min-w-0 flex items-center justify-center overflow-hidden">
-                <p className="text-sm text-muted-foreground font-display text-center max-w-full break-words line-clamp-3">
-                  {t('battle_chooseAction')}
-                </p>
+              <div
+                key={phase === 'idle' ? factKey : 'chat'}
+                className="flex-1 min-w-0 flex items-center justify-center overflow-hidden animate-slide-up"
+              >
+                {phase === 'idle' ? (
+                  factLoading ? (
+                    <p className="text-xs text-muted-foreground font-display text-center animate-pulse">
+                      {t('battle_factLoading')}
+                    </p>
+                  ) : fact ? (
+                    <p className="text-xs font-display text-center leading-relaxed overflow-auto max-h-full">
+                      {fact}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground font-display text-center">
+                      {t('battle_readyToFight')}
+                    </p>
+                  )
+                ) : (
+                  <p className="text-sm text-muted-foreground font-display text-center max-w-full break-words line-clamp-3">
+                    {t('battle_chooseAction')}
+                  </p>
+                )}
               </div>
             </div>
-            {/* Buttons: fixed at bottom */}
+            {/* Buttons: Play (idle) or Escape+Item (playing) */}
             <div className="game-panel min-h-12 py-2 px-1.5 flex items-stretch gap-2 shrink-0">
               <GameButton variant="danger" size="sm" onClick={handleEscape} className="shadow-lg flex-1 min-w-0 flex items-center justify-center gap-1">
                 {t('battle_escape')}
               </GameButton>
-              <GameButton
-                variant="outline"
-                size="sm"
-                onClick={handleItem}
-                disabled={!isPlayerTurn}
-                className="flex-1 min-w-0 flex-col gap-0.5 flex items-center justify-center">
-                {t('battle_item')}
-              </GameButton>
+              {phase === 'idle' ? (
+                <GameButton
+                  variant="gold"
+                  size="sm"
+                  onClick={() => setPhase('playing')}
+                  className="flex-1 min-w-0 flex items-center justify-center gap-1"
+                >
+                  ▶ {t('battle_play')}
+                </GameButton>
+              ) : (
+                <GameButton
+                  variant="outline"
+                  size="sm"
+                  onClick={handleItem}
+                  disabled={!isPlayerTurn}
+                  className="flex-1 min-w-0 flex-col gap-0.5 flex items-center justify-center"
+                >
+                  {t('battle_item')}
+                </GameButton>
+              )}
             </div>
           </div>
         </div>
