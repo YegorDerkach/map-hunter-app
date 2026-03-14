@@ -89,6 +89,10 @@ export default function BattleScreen() {
 
   const battle = state.activeBattle;
   const monster = battle?.monster ?? monsters.find((m) => m.id === id);
+  // Keep a stable ref so the component doesn't flash null while the route transition is pending
+  const monsterRef = useRef<typeof monster | null>(null);
+  if (monster) monsterRef.current = monster;
+  const resolvedMonster = monsterRef.current;
 
   // Enemy auto-attack after player's turn (disabled during mini-games — mini-games handle damage via callbacks)
   useEffect(() => {
@@ -122,8 +126,8 @@ export default function BattleScreen() {
         dispatch({ type: 'GAIN_GOLD', payload: battle.monster.goldReward });
         dispatch({ type: 'SET_LOOT', payload: [{ item: items.health_potion, quantity: 1 }] });
       }
-      dispatch({ type: 'END_BATTLE', payload: { won: true } });
       navigate('/loot');
+      dispatch({ type: 'END_BATTLE', payload: { won: true } });
     } else if (battle.playerHp <= 0) {
       battleEndedRef.current = true;
       if (battle.serverEnemyId) {
@@ -133,8 +137,8 @@ export default function BattleScreen() {
           })
           .catch(() => {});
       }
-      dispatch({ type: 'END_BATTLE', payload: { won: false } });
       navigate('/map');
+      dispatch({ type: 'END_BATTLE', payload: { won: false } });
     }
   }, [battle, dispatch, navigate]);
 
@@ -146,13 +150,13 @@ export default function BattleScreen() {
   };
 
   const handleEscape = () => {
-    dispatch({ type: 'END_BATTLE', payload: { won: false } });
     navigate('/map');
+    dispatch({ type: 'END_BATTLE', payload: { won: false } });
   };
 
   const { t, tMonster } = useT();
 
-  if (!monster) return null;
+  if (!resolvedMonster) return null;
 
   return (
     <GameShell pattern="battle">
@@ -173,19 +177,19 @@ export default function BattleScreen() {
               {battle?.enemyPhotoUrl ? (
                 <img src={battle.enemyPhotoUrl} alt="" className="w-full h-full object-cover" />
               ) : (
-                monster.emoji
+                resolvedMonster.emoji
               )}
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
-                <h2 className="font-display font-bold text-lg">{tMonster(monster.id, monster.name)}</h2>
+                <h2 className="font-display font-bold text-lg">{tMonster(resolvedMonster.id, resolvedMonster.name)}</h2>
                 <span className="text-xs text-muted-foreground bg-muted border-2 border-border px-2 py-0.5 rounded-md shadow-[0_2px_0_hsl(var(--border)),inset_0_1px_0_hsl(var(--bar-highlight)/0.5)]">
-                  {t('common_levelShort', { level: String(monster.level) })}
+                  {t('common_levelShort', { level: String(resolvedMonster.level) })}
                 </span>
               </div>
               <HPBar
-                current={battle?.monster.hp ?? monster.hp}
-                max={monster.maxHp}
+                current={battle?.monster.hp ?? resolvedMonster.hp}
+                max={resolvedMonster.maxHp}
                 label={t('battle_enemyHp')}
               />
             </div>
@@ -235,7 +239,7 @@ export default function BattleScreen() {
                 });
               },
               onRoundComplete: () => {
-                const amount = Math.ceil(monster.maxHp / 3);
+                const amount = Math.ceil(resolvedMonster.maxHp / 3);
                 if (amount > 0) {
                   dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount } });
                 }
