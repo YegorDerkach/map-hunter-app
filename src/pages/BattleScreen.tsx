@@ -9,7 +9,8 @@ import { useGame } from '@/context/GameContext';
 import { monsters } from '@/data/monsters';
 import { items } from '@/data/items';
 // import { createDodgeGame, DAMAGE_PER_HIT } from '@/games'; // Game 1 — disabled
-import { createArrowGame, DAMAGE_PER_MISS } from '@/games';
+// import { createArrowGame, DAMAGE_PER_MISS } from '@/games'; // Game 2 — disabled
+import { createPairsGame } from '@/games';
 import type { MiniGame } from '@/games';
 
 const ENEMY_ATTACK_DELAY_MS = 700;
@@ -160,8 +161,8 @@ export default function BattleScreen() {
           </div>
         </div>
 
-        {/* D-pad — fixed, sized to helper image height, centered on screen horizontally */}
-        {dpadRect && (
+        {/* D-pad — only shown for games that support hitDirection (e.g. arrow game) */}
+        {dpadRect && miniGameRef.current?.hitDirection && (
           <div
             className="fixed z-30 pointer-events-none"
             style={{ top: dpadRect.top, left: dpadRect.left, width: dpadRect.size, height: dpadRect.size }}
@@ -182,22 +183,19 @@ export default function BattleScreen() {
           className={gameActive ? 'relative z-30' : undefined}
           onMiniGameReady={(app) => {
             miniGameRef.current?.destroy();
-            miniGameRef.current = createArrowGame(
+            miniGameRef.current = createPairsGame(
               app,
               () => { setGameActive(false); },
               {
-                onPlayerHit: () => {
-                  dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'player', amount: DAMAGE_PER_MISS } });
+                onPlayerHit: (amount = 10) => {
+                  dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'player', amount } });
                 },
                 onRoundComplete: () => {
-                  // 5 hits = round won → enemy loses 1/3 of max HP
+                  // All pairs found → enemy loses 1/3 of max HP
                   const amount = Math.ceil(monster.maxHp / 3);
                   if (amount > 0) {
                     dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount } });
                   }
-                },
-                onFalseHit: () => {
-                  dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'player', amount: 5 } });
                 },
               },
             );
