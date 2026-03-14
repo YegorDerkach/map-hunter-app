@@ -250,9 +250,20 @@ export default function LocationInteractionScreen() {
             </div>
           )}
           {verifyStep === 'camera' && (
-            <div className="w-full text-center py-2 px-4 bg-muted/50 border-2 border-border rounded-lg">
-              <p className="text-sm font-bold text-foreground mb-1">📸 Take a photo of your surroundings</p>
-              <p className="text-xs text-muted-foreground">The AI will verify you are at this location</p>
+            <div className="w-full flex items-end gap-3">
+              {/* Character */}
+              <div className="w-20 shrink-0">
+                <img
+                  src="/helper.png"
+                  alt=""
+                  className="w-full aspect-[3/5] object-cover object-center rounded-lg border-2 border-border shadow-[0_2px_0_hsl(var(--border))]"
+                />
+              </div>
+              {/* Speech bubble */}
+              <div className="flex-1 chat-bubble px-4 py-3 ml-1 relative">
+                <p className="text-sm font-bold text-foreground mb-0.5">📸 Take a photo!</p>
+                <p className="text-xs text-muted-foreground">AI will verify you are at this location</p>
+              </div>
             </div>
           )}
           {verifyStep === 'verifying' && (

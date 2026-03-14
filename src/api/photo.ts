@@ -24,3 +24,4 @@ export async function uploadEnemyPhoto(enemyId: string, file: File): Promise<Ene
 export async function getProfilePhotoUrl(): Promise<string> {
   return request<string>('/api/photo/profile', 'GET', undefined, { responseText: true });
 }
+

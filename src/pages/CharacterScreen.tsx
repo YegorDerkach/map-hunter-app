@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Camera, Heart, Sword, Shield, Zap, Clover, Star, Coins, Gem, Mail } from 'lucide-react';
+import { toast } from 'sonner';
 import { GameShell } from '@/components/game/GameShell';
 import { BackHeader } from '@/components/game/BackHeader';
 import { HPBar } from '@/components/game/HPBar';
@@ -11,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useGame } from '@/context/GameContext';
 import { useT } from '@/i18n/useT';
-import { getProfilePhotoUrl, uploadUserPhoto } from '@/api';
+import { getProfilePhotoUrl, generateProfilePhoto } from '@/api';
 
 const skillKeys = [
   { emoji: '⚔️', nameKey: 'skill_powerStrike' as const, descKey: 'skill_powerStrikeDesc' as const, cooldown: '2 turns' },
@@ -54,10 +55,9 @@ export default function CharacterScreen() {
     if (!file?.type.startsWith('image/')) return;
     if (!state.token) return;
     setAvatarLoading(true);
-    uploadUserPhoto(file)
-      .then(() => getProfilePhotoUrl())
-      .then((url) => setProfilePhotoUrl(url || null))
-      .catch(() => {})
+    generateProfilePhoto(file)
+      .then((url: string) => setProfilePhotoUrl(url || null))
+      .catch((err: unknown) => toast.error(err instanceof Error ? err.message : 'Failed to generate photo'))
       .finally(() => setAvatarLoading(false));
     e.target.value = '';
   };
