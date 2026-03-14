@@ -15,16 +15,21 @@ import type { MiniGame } from '@/games';
 const ENEMY_ATTACK_DELAY_MS = 700;
 
 function DPadBtn({ symbol, color, onHit, dir }: { symbol: string; color: string; dir: string; onHit: () => void }) {
+  const [pressed, setPressed] = useState(false);
   return (
     <button
       aria-label={dir}
-      onPointerDown={(e) => { e.preventDefault(); onHit(); }}
-      className="w-full h-full rounded-xl flex items-center justify-center text-2xl font-bold select-none cursor-pointer
-        border-2 bg-card
-        shadow-[0_3px_0_rgba(0,0,0,0.4)]
-        active:translate-y-[3px] active:shadow-none
-        transition-[transform,box-shadow] duration-75"
-      style={{ borderColor: color, color, WebkitTapHighlightColor: 'transparent' }}
+      onPointerDown={(e) => { e.preventDefault(); setPressed(true); onHit(); }}
+      onPointerUp={() => setPressed(false)}
+      onPointerLeave={() => setPressed(false)}
+      className="w-full h-full rounded-lg flex items-center justify-center text-lg font-bold select-none cursor-pointer border-2 bg-card"
+      style={{
+        borderColor: color,
+        color,
+        WebkitTapHighlightColor: 'transparent',
+        transform: pressed ? 'translateY(3px)' : 'translateY(0)',
+        boxShadow: pressed ? 'none' : '0 3px 0 rgba(0,0,0,0.4)',
+      }}
     >
       {symbol}
     </button>
@@ -36,13 +41,25 @@ export default function BattleScreen() {
   const navigate = useNavigate();
   const { state, dispatch } = useGame();
   const [gameActive, setGameActive] = useState(false);
+  const [dpadRect, setDpadRect] = useState<{ top: number; left: number; size: number } | null>(null);
   const miniGameRef    = useRef<MiniGame | null>(null);
+  const helperRef      = useRef<HTMLDivElement>(null);
   const dispatchRef    = useRef(dispatch);
   const battleEndedRef = useRef(false);
   dispatchRef.current = dispatch;
 
   // Destroy game on unmount to prevent ticker running after navigation
   useEffect(() => () => { miniGameRef.current?.destroy(); }, []);
+
+  // Compute D-pad position/size relative to helper image when game starts
+  useEffect(() => {
+    if (!gameActive) { setDpadRect(null); return; }
+    const el = helperRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const size = r.height * 0.95;
+    setDpadRect({ size, top: r.top + (r.height - size) / 2 - size * 0.1, left: window.innerWidth / 2 - size / 2 });
+  }, [gameActive]);
 
   // Start battle on mount only (removing state.activeBattle from deps prevents re-start after END_BATTLE)
   useEffect(() => {
@@ -131,10 +148,13 @@ export default function BattleScreen() {
           </div>
         </div>
 
-        {/* D-pad directional buttons — shown above overlay during arrow game */}
-        {gameActive && (
-          <div className="absolute bottom-3 inset-x-0 z-30 flex justify-center pointer-events-none">
-            <div className="grid gap-2 pointer-events-auto" style={{ gridTemplateColumns: 'repeat(3, 3rem)', gridTemplateRows: 'repeat(3, 3rem)' }}>
+        {/* D-pad — fixed, sized to helper image height, centered on screen horizontally */}
+        {dpadRect && (
+          <div
+            className="fixed z-30 pointer-events-none"
+            style={{ top: dpadRect.top, left: dpadRect.left, width: dpadRect.size, height: dpadRect.size }}
+          >
+            <div className="grid gap-1 w-full h-full pointer-events-auto" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(3, 1fr)' }}>
               <div /><DPadBtn symbol="↑" dir="up"    color="#44ee88" onHit={() => miniGameRef.current?.hitDirection?.('up')}    /><div />
               <DPadBtn symbol="←" dir="left"  color="#44aaff" onHit={() => miniGameRef.current?.hitDirection?.('left')}  />
               <div />
@@ -164,6 +184,9 @@ export default function BattleScreen() {
                     dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount } });
                   }
                 },
+                onFalseHit: () => {
+                  dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'player', amount: 5 } });
+                },
               },
             );
             setGameActive(true);
@@ -185,7 +208,7 @@ export default function BattleScreen() {
         <div className="flex w-full gap-2 items-stretch mt-auto">
           {/* Helper image: aspect 3:5, small inset so image and border aren't clipped */}
           <div className="w-1/4 min-w-0 flex justify-center items-center self-stretch min-h-0 py-0.5">
-            <div className="h-full max-w-full max-h-full aspect-[3/5] flex-shrink-0">
+            <div ref={helperRef} className="h-full max-w-full max-h-full aspect-[3/5] flex-shrink-0">
               <img src="/helper.png" alt="" className="w-full h-full object-cover object-center rounded-lg border-2 border-border shadow-[0_2px_0_hsl(var(--border))]" />
             </div>
           </div>

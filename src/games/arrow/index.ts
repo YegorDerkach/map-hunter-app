@@ -51,6 +51,7 @@ type FloatText = { gfx: Text; vy: number; life: number; maxLife: number };
 export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, options?: MiniGameOptions): MiniGame {
   const onPlayerHit     = options?.onPlayerHit;
   const onRoundComplete = options?.onRoundComplete;
+  const onFalseHit      = options?.onFalseHit;
 
   const W = app.screen.width;
   const H = app.screen.height;
@@ -231,8 +232,8 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
     onPlayerHit?.();
   };
 
-  const tryHit = (dir: Direction) => {
-    if (phase !== 'playing') return;
+  const tryHit = (dir: Direction): boolean => {
+    if (phase !== 'playing') return false;
     for (let i = 0; i < arrows.length; i++) {
       const a = arrows[i];
       if (!a.consumed && a.active && a.dir === dir) {
@@ -245,9 +246,18 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
         roundHits++;
         hitsTxt.text = `✓ ${roundHits}/${HITS_PER_ROUND}`;
         if (roundHits >= HITS_PER_ROUND) startBetween();
-        return;
+        return true;
       }
     }
+    // False press — flash + float text
+    const laneIdx = DIRECTIONS.indexOf(dir);
+    const cx = laneIdx * colW + colW / 2;
+    showFloat('✗', cx, HIT_ZONE_Y + HIT_ZONE_H / 2, 0xff2200);
+    hitFlashGfx.visible = true;
+    hitFlashGfx.alpha   = 0.3;
+    hitFlashTimer = Math.max(hitFlashTimer, 0.18);
+    onFalseHit?.();
+    return false;
   };
 
   // ── Main loop ─────────────────────────────────────────────────────────────
@@ -358,7 +368,7 @@ export function createArrowGame(app: Application, onEnd: MiniGameEndCallback, op
   // ── Input ──────────────────────────────────────────────────────────────────
   const onKey = (e: KeyboardEvent) => {
     for (const dir of DIRECTIONS) {
-      if (DIR_KEYS[dir].includes(e.key)) { e.preventDefault(); tryHit(dir); return; }
+      if (DIR_KEYS[dir].includes(e.key)) { e.preventDefault(); if (!tryHit(dir)) onFalseHit?.(); return; }
     }
   };
 
