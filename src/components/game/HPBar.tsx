@@ -6,12 +6,17 @@ interface HPBarProps {
   className?: string;
   showLabel?: boolean;
   label?: string;
+  /** When "player", bar and count turn red when current < max (damaged). */
+  variant?: 'default' | 'player';
 }
 
-export function HPBar({ current, max, className, showLabel = true, label = 'HP' }: HPBarProps) {
+export function HPBar({ current, max, className, showLabel = true, label = 'HP', variant = 'default' }: HPBarProps) {
   const percent = Math.min(100, Math.round((current / max) * 100));
+  const isDamaged = variant === 'player' && current < max;
   const fillGradient =
-    percent > 50
+    isDamaged || percent <= 25
+      ? 'linear-gradient(180deg, hsl(var(--game-red)) 0%, hsl(0 72% 40%) 100%)'
+      : percent > 50
       ? 'linear-gradient(180deg, hsl(var(--game-green)) 0%, hsl(152 55% 32%) 100%)'
       : percent > 25
       ? 'linear-gradient(180deg, hsl(var(--game-yellow)) 0%, hsl(45 98% 40%) 100%)'
@@ -20,9 +25,9 @@ export function HPBar({ current, max, className, showLabel = true, label = 'HP' 
   return (
     <div className={cn('w-full', className)}>
       {showLabel && (
-        <div className="flex justify-between text-xs font-display font-bold mb-1">
-          <span className="text-muted-foreground">{label}</span>
-          <span className="text-foreground">
+        <div className={cn('flex justify-between text-xs font-display font-bold mb-1', isDamaged && 'text-[hsl(var(--game-red))]')}>
+          <span className={cn(isDamaged ? 'text-[hsl(var(--game-red))]' : 'text-muted-foreground')}>{label}</span>
+          <span className={cn(isDamaged ? 'text-[hsl(var(--game-red))]' : 'text-foreground')}>
             {current} / {max}
           </span>
         </div>

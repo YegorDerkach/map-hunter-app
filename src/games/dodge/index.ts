@@ -1,17 +1,22 @@
 import { Application, Container, Graphics, Text, Ticker } from 'pixi.js';
-import type { MiniGame, MiniGameEndCallback } from '../types';
+import type { MiniGame, MiniGameEndCallback, MiniGameOptions } from '../types';
 
 // ── Difficulty configs ────────────────────────────────────────────────────────
 const LANE_COUNT   = 6;
 const BETWEEN_SECS = 2.5;
 
+const SWORDS_PER_ROUND   = 5;
+const TOTAL_GAME_SECONDS = 70; // 1 min 10 sec
+const LOW_TIME_THRESHOLD = 10; // blink timer red when this many seconds left
+const REFERENCE_DURATION = 20; // used for speed/extra fireball scaling (round has no fixed time)
+
 const ROUNDS = [
-  { duration: 15, spawnEvery: 1.5,  extraThreshold: 99,   extraChance: 0.0,  speedMult: 0.7,  swordEvery: 2.5 },
-  { duration: 16, spawnEvery: 1.0,  extraThreshold: 0.6,  extraChance: 0.35, speedMult: 1.5,  swordEvery: 3.0 },
-  { duration: 17, spawnEvery: 0.75, extraThreshold: 0.45, extraChance: 0.5,  speedMult: 2.8,  swordEvery: 3.5 },
+  { spawnEvery: 1.5,  extraThreshold: 99,   extraChance: 0.0,  speedMult: 0.7,  swordEvery: 2.5 },
+  { spawnEvery: 1.0,  extraThreshold: 0.6,  extraChance: 0.35, speedMult: 1.5,  swordEvery: 3.0 },
+  { spawnEvery: 0.75, extraThreshold: 0.45, extraChance: 0.5,  speedMult: 2.8,  swordEvery: 3.5 },
 ] as const;
 
-export const DAMAGE_PER_HIT   = 5;
+export const DAMAGE_PER_HIT   = 10;
 export const DAMAGE_PER_SWORD = 20;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -20,7 +25,9 @@ type Sword      = { gfx: Text; lane: number };
 type VFX        = { gfx: Graphics; vx: number; vy: number; life: number; maxLife: number };
 type Phase      = 'playing' | 'between' | 'done';
 
-export function createDodgeGame(app: Application, onEnd: MiniGameEndCallback): MiniGame {
+export function createDodgeGame(app: Application, onEnd: MiniGameEndCallback, options?: MiniGameOptions): MiniGame {
+  const onPlayerHit = options?.onPlayerHit;
+  const onRoundComplete = options?.onRoundComplete;
   const W = app.screen.width;
   const H = app.screen.height;
   const laneW = W / LANE_COUNT;
@@ -46,6 +53,7 @@ export function createDodgeGame(app: Application, onEnd: MiniGameEndCallback): M
   let phase: Phase   = 'playing';
   let currentRound   = 0;
   let roundElapsed   = 0;
+  let totalElapsed   = 0;
   let betweenElapsed = 0;
   let totalHits      = 0;
   let totalSwords    = 0;
@@ -53,6 +61,8 @@ export function createDodgeGame(app: Application, onEnd: MiniGameEndCallback): M
   let roundSwords    = 0;
   let flashTimer     = 0;
   let goldTimer      = 0;
+  let hitShakeTimer  = 0;
+  let hitFlashAlpha  = 0;
   let fbCooldown     = 0;
   let swCooldown     = ROUNDS[0].swordEvery * 0.4;
   let emberCD        = 0;
@@ -179,17 +189,24 @@ export function createDodgeGame(app: Application, onEnd: MiniGameEndCallback): M
   const makeHud = (t: string, color: number) =>
     new Text({ text: t, style: { fontSize: HUD_SIZE, fill: color, fontFamily: 'Fredoka, sans-serif', fontWeight: '600' } });
 
-  const timerTxt = makeHud(`${ROUNDS[0].duration}s`, 0xffffff);
+  const timerTxt = makeHud(`${TOTAL_GAME_SECONDS}s`, 0xffffff);
   timerTxt.x = 6; timerTxt.y = 4; hudLayer.addChild(timerTxt);
 
   const hitsTxt = makeHud('💥 0', 0xff5555);
   hitsTxt.anchor.set(1, 0); hitsTxt.x = W - 6; hitsTxt.y = 4; hudLayer.addChild(hitsTxt);
 
-  const swordTxt = makeHud('⚔️ 0', 0xffdd44);
+  const swordTxt = makeHud(`⚔️ 0/${SWORDS_PER_ROUND}`, 0xffdd44);
   swordTxt.anchor.set(0.5, 0); swordTxt.x = W / 2; swordTxt.y = 4; hudLayer.addChild(swordTxt);
 
   const roundTxt = makeHud('Round 1 / 3', 0xaaddff);
   roundTxt.anchor.set(0.5, 0); roundTxt.x = W / 2; roundTxt.y = HUD_SIZE + 8; hudLayer.addChild(roundTxt);
+
+  // ── Hit effect: red flash overlay (shown on each fireball hit) ───────────
+  const HIT_SHAKE_DURATION  = 0.28;
+  const HIT_SHAKE_INTENSITY = 14;
+  const hitFlashGfx = new Graphics().rect(0, 0, W, H).fill({ color: 0xff2200, alpha: 0 });
+  hitFlashGfx.visible = false;
+  overlayLayer.addChild(hitFlashGfx);
 
   // ── Between-round overlay ─────────────────────────────────────────────────
   const overlayBg    = new Graphics().rect(0, 0, W, H).fill({ color: 0x000022, alpha: 0.6 });
@@ -210,6 +227,8 @@ export function createDodgeGame(app: Application, onEnd: MiniGameEndCallback): M
 
   const startBetween = () => {
     phase = 'between'; betweenElapsed = 0;
+    gameLayer.x = 0; gameLayer.y = 0;
+    hitShakeTimer = 0; hitFlashAlpha = 0; hitFlashGfx.visible = false;
     clearProjectiles();
     const isLast = currentRound >= ROUNDS.length - 1;
     overlayTitle.text = isLast ? '🏆 Фініш!' : `Round ${currentRound + 1} done!`;
@@ -222,9 +241,9 @@ export function createDodgeGame(app: Application, onEnd: MiniGameEndCallback): M
     roundElapsed = roundHits = roundSwords = 0;
     fbCooldown = 0; swCooldown = ROUNDS[idx].swordEvery * 0.4;
     phase = 'playing';
+    gameLayer.x = 0; gameLayer.y = 0;
     overlayBg.visible = overlayTitle.visible = overlayStats.visible = false;
     roundTxt.text = `Round ${idx + 1} / ${ROUNDS.length}`;
-    timerTxt.text = `${ROUNDS[idx].duration}s`;
   };
 
   // ── Tick VFX arrays ───────────────────────────────────────────────────────
@@ -257,7 +276,8 @@ export function createDodgeGame(app: Application, onEnd: MiniGameEndCallback): M
       betweenElapsed += dt;
       if (betweenElapsed >= BETWEEN_SECS) {
         const next = currentRound + 1;
-        if (next >= ROUNDS.length) { phase = 'done'; destroy(); onEnd({ playerHits: totalHits, swordsCollected: totalSwords }); }
+        const timeUp = totalElapsed >= TOTAL_GAME_SECONDS;
+        if (next >= ROUNDS.length || timeUp) { phase = 'done'; destroy(); onEnd({ playerHits: totalHits, swordsCollected: totalSwords }); }
         else startRound(next);
       }
       return;
@@ -267,8 +287,31 @@ export function createDodgeGame(app: Application, onEnd: MiniGameEndCallback): M
     // ── Playing ───────────────────────────────────────────────────────────
     const cfg = ROUNDS[currentRound];
     roundElapsed += dt;
-    const timeLeft = Math.max(0, cfg.duration - roundElapsed);
-    timerTxt.text = `${Math.ceil(timeLeft)}s`;
+    totalElapsed += dt;
+    const totalTimeLeft = Math.max(0, TOTAL_GAME_SECONDS - totalElapsed);
+    timerTxt.text = `${Math.ceil(totalTimeLeft)}s`;
+    // Last 10 seconds: blink timer red
+    if (totalTimeLeft <= LOW_TIME_THRESHOLD) {
+      timerTxt.style.fill = Math.floor(totalElapsed * 4) % 2 === 0 ? 0xff3333 : 0xffffff;
+    } else {
+      timerTxt.style.fill = 0xffffff;
+    }
+    swordTxt.text = `⚔️ ${roundSwords}/${SWORDS_PER_ROUND}`;
+
+    // Hit shake: apply and decay
+    if (hitShakeTimer > 0) {
+      const t = hitShakeTimer / HIT_SHAKE_DURATION;
+      gameLayer.x = (Math.random() - 0.5) * 2 * HIT_SHAKE_INTENSITY * t;
+      gameLayer.y = (Math.random() - 0.5) * 2 * HIT_SHAKE_INTENSITY * t;
+      hitShakeTimer -= dt;
+      if (hitShakeTimer <= 0) { gameLayer.x = 0; gameLayer.y = 0; }
+    }
+    // Hit flash: red overlay fade-out
+    if (hitFlashAlpha > 0) {
+      hitFlashAlpha -= dt * 3.2;
+      hitFlashGfx.alpha = hitFlashAlpha;
+      if (hitFlashAlpha <= 0) { hitFlashGfx.visible = false; }
+    }
 
     // Player smooth move + idle bob
     player.x += (playerTargetX - player.x) * Math.min(1, dt * 20);
@@ -277,12 +320,20 @@ export function createDodgeGame(app: Application, onEnd: MiniGameEndCallback): M
     if      (flashTimer > 0) { flashTimer -= dt; player.tint = flashTimer > 0 ? 0xff3333 : 0xffffff; }
     else if (goldTimer  > 0) { goldTimer  -= dt; player.tint = goldTimer  > 0 ? 0xffdd44 : 0xffffff; }
 
+    // Global time limit — end game
+    if (totalElapsed >= TOTAL_GAME_SECONDS) {
+      phase = 'done';
+      destroy();
+      onEnd({ playerHits: totalHits, swordsCollected: totalSwords });
+      return;
+    }
+
     // Spawn fireballs
     fbCooldown -= dt;
     if (fbCooldown <= 0) {
       fireballs.push(makeFireball(Math.floor(Math.random() * LANE_COUNT)));
       fbCooldown = cfg.spawnEvery;
-      if (roundElapsed / cfg.duration > cfg.extraThreshold && Math.random() < cfg.extraChance) {
+      if (roundElapsed / REFERENCE_DURATION > cfg.extraThreshold && Math.random() < cfg.extraChance) {
         const last = fireballs[fireballs.length - 1]?.lane ?? -1;
         let alt = Math.floor(Math.random() * LANE_COUNT);
         for (let t = 0; t < 4 && alt === last; t++) alt = Math.floor(Math.random() * LANE_COUNT);
@@ -298,7 +349,7 @@ export function createDodgeGame(app: Application, onEnd: MiniGameEndCallback): M
     sparkCD -= dt;
     if (sparkCD <= 0) { for (const sw of swords) swordSpark(sw.gfx.x, sw.gfx.y); sparkCD = 0.1; }
 
-    const speed = (H / 3) * (1 + (roundElapsed / cfg.duration) * cfg.speedMult);
+    const speed = (H / 3) * (1 + (roundElapsed / REFERENCE_DURATION) * cfg.speedMult);
 
     // Fireballs
     for (let i = fireballs.length - 1; i >= 0; i--) {
@@ -316,6 +367,11 @@ export function createDodgeGame(app: Application, onEnd: MiniGameEndCallback): M
         roundHits++; totalHits++;
         hitsTxt.text = `💥 ${totalHits}`;
         flashTimer = 0.4;
+        hitShakeTimer = HIT_SHAKE_DURATION;
+        hitFlashAlpha = 0.5;
+        hitFlashGfx.visible = true;
+        hitFlashGfx.alpha = hitFlashAlpha;
+        onPlayerHit?.();
         explosion(fb.c.x, fb.c.y);
         fb.c.destroy({ children: true }); fireballs.splice(i, 1);
         continue;
@@ -332,7 +388,7 @@ export function createDodgeGame(app: Application, onEnd: MiniGameEndCallback): M
       const swX = laneW * sw.lane + laneW / 2;
       if (sw.gfx.y >= PL_Y - PL_SIZE && Math.abs(swX - player.x) < laneW * 0.85) {
         roundSwords++; totalSwords++;
-        swordTxt.text = `⚔️ ${totalSwords}`;
+        swordTxt.text = `⚔️ ${roundSwords}/${SWORDS_PER_ROUND}`;
         goldTimer = 0.35;
         swordCatch(sw.gfx.x, sw.gfx.y);
         sw.gfx.destroy(); swords.splice(i, 1);
@@ -341,15 +397,18 @@ export function createDodgeGame(app: Application, onEnd: MiniGameEndCallback): M
       if (sw.gfx.y - SW_SIZE > H) { sw.gfx.destroy(); swords.splice(i, 1); }
     }
 
-    if (timeLeft <= 0) startBetween();
+    if (roundSwords >= SWORDS_PER_ROUND) {
+      onRoundComplete?.();
+      startBetween();
+    }
   };
 
   app.ticker.add(tick);
 
   // ── Input ─────────────────────────────────────────────────────────────────
   const updateTarget = () => { playerTargetX = laneW * playerLane + laneW / 2; redrawHL(); };
-  const moveLeft  = () => { if (playerLane > 0)              { playerLane--; updateTarget(); } };
-  const moveRight = () => { if (playerLane < LANE_COUNT - 1) { playerLane++; updateTarget(); } };
+  const moveLeft  = () => { if (phase !== 'playing') return; if (playerLane > 0)              { playerLane--; updateTarget(); } };
+  const moveRight = () => { if (phase !== 'playing') return; if (playerLane < LANE_COUNT - 1) { playerLane++; updateTarget(); } };
 
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'A') { e.preventDefault(); moveLeft(); }

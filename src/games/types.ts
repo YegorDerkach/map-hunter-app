@@ -8,3 +8,10 @@ export interface MiniGameResult {
 }
 
 export type MiniGameEndCallback = (result: MiniGameResult) => void;
+
+export interface MiniGameOptions {
+  /** Called each time the player is hit by a fireball (for real-time HP updates). */
+  onPlayerHit?: () => void;
+  /** Called when the player collects 5 swords and wins the round (e.g. deal 1/3 enemy HP). */
+  onRoundComplete?: () => void;
+}

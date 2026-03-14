@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GameShell } from '@/components/game/GameShell';
 import { HPBar } from '@/components/game/HPBar';
@@ -8,7 +8,8 @@ import { BattleArea } from '@/components/game/BattleArea';
 import { useGame } from '@/context/GameContext';
 import { monsters } from '@/data/monsters';
 import { items } from '@/data/items';
-import { createDodgeGame, DAMAGE_PER_HIT, DAMAGE_PER_SWORD } from '@/games';
+import { createDodgeGame, DAMAGE_PER_HIT } from '@/games';
+
 import type { MiniGame } from '@/games';
 
 const ENEMY_ATTACK_DELAY_MS = 700;
@@ -17,6 +18,7 @@ export default function BattleScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { state, dispatch } = useGame();
+  const [gameActive, setGameActive] = useState(false);
   const miniGameRef = useRef<MiniGame | null>(null);
   const dispatchRef = useRef(dispatch);
   dispatchRef.current = dispatch;
@@ -75,11 +77,18 @@ export default function BattleScreen() {
 
   return (
     <GameShell pattern="battle">
-      <ScreenTransition className="p-0 gap-2 flex flex-col min-h-0 flex-1 relative">
+      <ScreenTransition className={`p-0 gap-2 flex flex-col min-h-0 flex-1 relative${gameActive ? ' select-none' : ''}`}>
+        {/* Overlay blocks taps/selection; Enemy and Your HP panels have z-30 so they stay visible above overlay */}
+        {gameActive && (
+          <div
+            className="absolute inset-0 z-20 pointer-events-auto"
+            style={{ background: 'rgba(0,0,0,0.55)', touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' } as React.CSSProperties}
+          />
+        )}
         {/* Game content — stretches to fill rest of screen */}
         <div className="flex-1 min-h-0 flex flex-col gap-2">
-        {/* Enemy info */}
-        <div className="game-panel border-l-4 border-l-[hsl(var(--game-red))] bg-gradient-to-r from-[hsl(var(--game-red)/0.08)] to-card p-2">
+        {/* Enemy info — above overlay (z-30) so HP is visible during minigame */}
+        <div className="game-panel border-l-4 border-l-[hsl(var(--game-red))] bg-gradient-to-r from-[hsl(var(--game-red)/0.08)] to-card p-2 relative z-30">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-14 h-14 rounded-lg border-2 border-border bg-muted flex items-center justify-center text-4xl shadow-[0_2px_0_hsl(var(--border)),inset_0_1px_0_hsl(var(--bar-highlight)/0.6)]">
               {monster.emoji}
@@ -100,28 +109,41 @@ export default function BattleScreen() {
           </div>
         </div>
 
-        {/* Battle arena — shrinks when needed so gaps between blocks are always kept */}
+        {/* Battle arena — raised above overlay via z-30 when game is active */}
         <BattleArea
           isEnemyTurn={battle?.turn === 'enemy'}
+          className={gameActive ? 'relative z-30' : undefined}
           onMiniGameReady={(app) => {
             miniGameRef.current?.destroy();
-            miniGameRef.current = createDodgeGame(app, ({ playerHits, swordsCollected }) => {
-              if (playerHits > 0) {
-                dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'player', amount: playerHits * DAMAGE_PER_HIT } });
+            miniGameRef.current = createDodgeGame(
+              app,
+              () => {
+                setGameActive(false);
+              },
+              {
+                onPlayerHit: () => {
+                  dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'player', amount: DAMAGE_PER_HIT } });
+                },
+                onRoundComplete: () => {
+                  // 5 swords = round won → enemy loses 1/3 of max HP
+                  const amount = Math.floor(monster.maxHp / 3);
+                  if (amount > 0) {
+                    dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount } });
+                  }
+                },
               }
-              if (swordsCollected > 0) {
-                dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount: swordsCollected * DAMAGE_PER_SWORD } });
-              }
-            });
+            );
+            setGameActive(true);
           }}
         />
 
-        {/* Player HP */}
-        <div className="game-panel p-2">
+        {/* Player HP — above overlay (z-30) so it stays visible and updates in real time */}
+        <div className="game-panel p-2 relative z-30">
           <HPBar
             current={battle?.playerHp ?? state.player.hp}
             max={state.player.maxHp}
             label="Your HP"
+            variant="player"
           />
         </div>
         </div>
