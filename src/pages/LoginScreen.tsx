@@ -1,12 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { useGame } from '@/context/GameContext';
 import { useT } from '@/i18n/useT';
 import { GameButton } from '@/components/game/GameButton';
 import { login, register, loginWithGoogle } from '@/service/auth';
 import { firebaseAuth, googleProvider } from '@/lib/firebase';
 import type { AuthUser } from '@/types/game';
+
+/** Telegram WebView blocks popups — use redirect flow instead. */
+function isTelegramWebView(): boolean {
+  if (typeof window === 'undefined') return false;
+  const ua = navigator.userAgent ?? '';
+  return (
+    // Telegram sets this global when running as a Mini App
+    !!(window as { Telegram?: { WebApp?: unknown } }).Telegram?.WebApp ||
+    ua.includes('Telegram')
+  );
+}
 
 const mapDecorations = ['🌲', '⛰️', '🏰', '🌊', '🌋', '🏕️', '🌿', '🗻', '🏔️', '🌾'];
 
@@ -26,10 +37,46 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // After a redirect-based Google sign-in, Firebase returns here and we pick up the result.
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    getRedirectResult(firebaseAuth)
+      .then(async (result) => {
+        if (cancelled || !result) return;
+        const idToken = await result.user.getIdToken();
+        const res = await loginWithGoogle(idToken);
+        const user = res.data as AuthUser | null;
+        if (res.token && user) {
+          dispatch({ type: 'LOGIN_SERVER', payload: { token: res.token, user } });
+          navigate(state.tutorialComplete ? '/map' : '/tutorial');
+        } else {
+          setError(t('login_error'));
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          // Ignore "no redirect result" — that's the normal first-load case.
+          const code: string = (err as { code?: string }).code ?? '';
+          if (code !== 'auth/no-current-user') {
+            setError(err instanceof Error ? err.message : t('login_error'));
+          }
+        }
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleGoogle = async () => {
     setError(null);
     setLoading(true);
     try {
+      if (isTelegramWebView()) {
+        // Redirect flow: page will reload after Google auth, result is handled in useEffect above.
+        await signInWithRedirect(firebaseAuth, googleProvider);
+        return; // execution stops here; page redirects away
+      }
       const result = await signInWithPopup(firebaseAuth, googleProvider);
       const idToken = await result.user.getIdToken();
       const res = await loginWithGoogle(idToken);
