@@ -25,3 +25,7 @@ export async function getProfilePhotoUrl(): Promise<string> {
   return request<string>('/api/photo/profile', 'GET', undefined, { responseText: true });
 }
 
+export async function getEnemyPhotoUrl(enemyId: string): Promise<string> {
+  return request<string>(`/api/photo/enemy/${encodeURIComponent(enemyId)}`, 'GET', undefined, { responseText: true });
+}
+

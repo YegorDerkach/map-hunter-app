@@ -22,6 +22,7 @@ export {
   uploadItemPhoto,
   uploadEnemyPhoto,
   getProfilePhotoUrl,
+  getEnemyPhotoUrl,
 } from './photo';
 export { getStreet } from './map';
 export { generateBattle, endBattle } from './battles';

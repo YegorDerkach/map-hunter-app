@@ -6,7 +6,7 @@ import { GameButton } from '@/components/game/GameButton';
 import { ScreenTransition } from '@/components/game/ScreenTransition';
 import { BattleArea } from '@/components/game/BattleArea';
 import { useGame } from '@/context/GameContext';
-import { endBattle, killEnemy } from '@/api';
+import { endBattle, killEnemy, getEnemyPhotoUrl } from '@/api';
 import { monsters } from '@/data/monsters';
 import { items } from '@/data/items';
 import {
@@ -48,6 +48,7 @@ export default function BattleScreen() {
   const { state, dispatch } = useGame();
   const [gameActive, setGameActive] = useState(false);
   const [dpadRect, setDpadRect] = useState<{ top: number; left: number; size: number } | null>(null);
+  const [enemyPhotoUrl, setEnemyPhotoUrl] = useState<string | null>(null);
   const miniGameRef    = useRef<MiniGame | null>(null);
   const playerHpRef    = useRef<HTMLDivElement>(null);
   const dispatchRef    = useRef(dispatch);
@@ -56,6 +57,15 @@ export default function BattleScreen() {
 
   // Destroy game on unmount to prevent ticker running after navigation
   useEffect(() => () => { miniGameRef.current?.destroy(); }, []);
+
+  // Fetch enemy photo URL if server enemy has a photo
+  useEffect(() => {
+    const enemyId = state.activeBattle?.serverEnemyId;
+    if (!enemyId) return;
+    getEnemyPhotoUrl(enemyId)
+      .then((url) => setEnemyPhotoUrl(url || null))
+      .catch(() => setEnemyPhotoUrl(null));
+  }, [state.activeBattle?.serverEnemyId]);
 
   // D-pad: size from screen, then centered between bottom of player HP bar and bottom of screen
   useEffect(() => {
@@ -90,15 +100,15 @@ export default function BattleScreen() {
   const battle = state.activeBattle;
   const monster = battle?.monster ?? monsters.find((m) => m.id === id);
 
-  // Enemy auto-attack after player's turn
+  // Enemy auto-attack after player's turn (disabled during mini-games — mini-games handle damage via callbacks)
   useEffect(() => {
-    if (!battle || battle.turn !== 'enemy') return;
+    if (!battle || battle.turn !== 'enemy' || gameActive) return;
     const dmg = Math.max(1, battle.monster.attack - state.player.defense / 2);
     const timer = setTimeout(() => {
       dispatch({ type: 'DEAL_DAMAGE', payload: { target: 'player', amount: Math.floor(dmg) } });
     }, ENEMY_ATTACK_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [battle, dispatch, state.player.defense]);
+  }, [battle, dispatch, state.player.defense, gameActive]);
 
   // Win / lose detection — battleEndedRef prevents re-firing before navigation completes
   useEffect(() => {
