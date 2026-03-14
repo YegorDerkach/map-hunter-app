@@ -17,6 +17,8 @@ function enemyToMarker(enemy: Enemy): MapMarkerData {
     y: Math.max(0, Math.min(100, y)),
     label: enemy.name,
     enemyId: enemy.id,
+    lat: enemy.latitude,
+    lng: enemy.longitude,
   };
 }
 

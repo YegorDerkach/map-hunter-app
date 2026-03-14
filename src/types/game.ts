@@ -55,6 +55,9 @@ export interface MapMarkerData {
   chestId?: string;
   /** Server enemy id (from getEnemiesByCity); when set, location uses API enemy */
   enemyId?: string;
+  /** Raw GPS coordinates — when present, used directly instead of x/y percentage conversion */
+  lat?: number;
+  lng?: number;
 }
 
 export interface Item {

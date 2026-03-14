@@ -38,10 +38,15 @@ const LIGHT_MAP_STYLES: google.maps.MapTypeStyle[] = [
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function markerToLatLng(marker: MapMarkerData, center: LatLng): LatLng {
+function markerToLatLng(marker: MapMarkerData): LatLng {
+  // Use raw GPS coords if present (server enemies) — no precision loss
+  if (marker.lat !== undefined && marker.lng !== undefined) {
+    return { lat: marker.lat, lng: marker.lng };
+  }
+  // Fallback: decode from x/y percentage (static/local markers) relative to Kyiv center
   return {
-    lat: center.lat + (0.5 - marker.y / 100) * SPREAD,
-    lng: center.lng + (marker.x / 100 - 0.5) * SPREAD,
+    lat: DEFAULT_CENTER.lat + (0.5 - marker.y / 100) * SPREAD,
+    lng: DEFAULT_CENTER.lng + (marker.x / 100 - 0.5) * SPREAD,
   };
 }
 
@@ -49,17 +54,15 @@ function markerToLatLng(marker: MapMarkerData, center: LatLng): LatLng {
 
 function GameMarkerOverlay({
   marker,
-  center,
   onClick,
 }: {
   marker: MapMarkerData;
-  center: LatLng;
   onClick: () => void;
 }) {
   const meta = MARKER_META[marker.type] ?? { color: '#3b82f6', emoji: '❓' };
   const label = marker.label.length > 14 ? marker.label.slice(0, 13) + '…' : marker.label;
 
-  const position = markerToLatLng(marker, center);
+  const position = markerToLatLng(marker);
   const pinWidth = 120;
   const pinHeight = 36;
 
@@ -332,7 +335,6 @@ function MapRenderer({
             <GameMarkerOverlay
               key={marker.id}
               marker={marker}
-              center={mapCenter}
               onClick={() => onMarkerClick(marker)}
             />
           ))}
