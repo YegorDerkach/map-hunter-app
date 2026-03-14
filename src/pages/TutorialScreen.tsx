@@ -26,7 +26,7 @@ export default function TutorialScreen() {
   };
 
   return (
-    <div className="min-h-screen game-gradient-sky flex flex-col items-center justify-center p-6 relative">
+    <div className="min-h-dvh game-gradient-sky flex flex-col items-center justify-center p-6 relative">
       <div className="absolute inset-0 screen-texture-paper pointer-events-none" />
       <div className="relative z-10 w-full max-w-[360px] flex flex-col items-center gap-6">
         {/* Guide character */}

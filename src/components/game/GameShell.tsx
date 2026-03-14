@@ -37,13 +37,13 @@ export function GameShell({
   return (
     <div
       className={cn(
-        'min-h-screen flex items-center justify-center p-2',
+        'min-h-dvh flex items-center justify-center p-2',
         outerClassName ?? 'bg-muted/30'
       )}
     >
       <div
         className={cn(
-          'relative w-full max-w-[430px] sm:max-w-[540px] md:max-w-[768px] h-[calc(100vh-2rem)] min-h-0 flex flex-col',
+          'relative w-full max-w-[430px] sm:max-w-[540px] md:max-w-[768px] h-[calc(100dvh-2rem)] min-h-0 flex flex-col',
           textureClass,
           'shadow-[0_0_40px_hsl(var(--shadow-game))]',
           !noPadding && '',

@@ -97,7 +97,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden game-gradient-hero flex flex-col items-center justify-end pb-12 px-6">
+    <div className="min-h-dvh relative overflow-hidden game-gradient-hero flex flex-col items-center justify-end pb-12 px-6">
       <div className="absolute inset-0 screen-texture-dots pointer-events-none opacity-80" />
       <div className="absolute inset-0 grid grid-cols-5 gap-4 p-4 opacity-20 pointer-events-none select-none">
         {Array.from({ length: 30 }).map((_, i) => (
