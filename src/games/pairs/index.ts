@@ -70,14 +70,11 @@ export function createPairsGame(
   const HUD_SIZE = Math.max(10, H * 0.06);
 
   // ── Layers ─────────────────────────────────────────────────────────────────
-  const bgLayer      = new Container();
   const cardLayer    = new Container();
   const vfxLayer     = new Container();
   const hudLayer     = new Container();
   const overlayLayer = new Container();
-  app.stage.addChild(bgLayer, cardLayer, vfxLayer, hudLayer, overlayLayer);
-
-  // No global background — set by the app shell behind the canvas
+  app.stage.addChild(cardLayer, vfxLayer, hudLayer, overlayLayer);
 
   // ── State ──────────────────────────────────────────────────────────────────
   let destroyed      = false;
@@ -125,8 +122,7 @@ export function createPairsGame(
     hitFlashPeak     = peak;
     hitFlashDuration = duration;
     hitFlashTimer    = duration;
-    hitFlashGfx.visible = true;
-    hitFlashGfx.alpha   = peak;
+    hitFlashGfx.alpha = peak;
   };
 
   // ── HUD ────────────────────────────────────────────────────────────────────
@@ -145,10 +141,9 @@ export function createPairsGame(
   hudLayer.addChild(pairsTxt, timerTxt, roundTxt);
 
   // ── Overlays ───────────────────────────────────────────────────────────────
-  // alpha: 0 in fill() would multiply with object alpha → always 0; use fill alpha:1 + object alpha for control
+  // Control visibility via alpha only — toggling .visible while alpha=0 risks flicker on back-to-back flashes
   const hitFlashGfx = new Graphics().rect(0, 0, W, H).fill({ color: 0xff2200 });
   hitFlashGfx.alpha = 0;
-  hitFlashGfx.visible = false;
   overlayLayer.addChild(hitFlashGfx);
 
   const overlayBg    = new Graphics().rect(0, 0, W, H).fill({ color: 0x000022 });
@@ -284,7 +279,7 @@ export function createPairsGame(
   // ── Hit-test ───────────────────────────────────────────────────────────────
   const hitTestCard = (x: number, y: number): Card | null => {
     for (const c of cards) {
-      if (c.isMatched || c.matchFadeTimer > 0) continue;
+      if (c.isMatched) continue;
       if (Math.abs(x - c.cx) <= c.halfW && Math.abs(y - c.cy) <= c.halfH) return c;
     }
     return null;
@@ -298,7 +293,7 @@ export function createPairsGame(
       a.isMatched = b.isMatched = true;
       hitBurst(a.cx, a.cy, SYMBOL_COLORS[CARD_SYMBOLS.indexOf(a.symbol) % SYMBOL_COLORS.length] ?? 0xffffff);
       hitBurst(b.cx, b.cy, SYMBOL_COLORS[CARD_SYMBOLS.indexOf(b.symbol) % SYMBOL_COLORS.length] ?? 0xffffff);
-      showFloat('MATCH!', (a.cx + b.cx) / 2, (a.cy + b.cy) / 2, 0x44ee88);
+      showFloat('MATCH!', (a.cx + b.cx) / 2, (a.cy + b.cy) / 2, 0x2DA99A);
       pairsFound++;
       pairsTxt.text = `🃏 ${pairsFound}/${ROUNDS[currentRound].pairCount}`;
       if (pairsFound >= ROUNDS[currentRound].pairCount) {
@@ -307,7 +302,7 @@ export function createPairsGame(
       }
     } else {
       triggerFlash(0.42, 0.28);
-      showFloat('✗', (a.cx + b.cx) / 2, (a.cy + b.cy) / 2, 0xff2200);
+      showFloat('MISS!', (a.cx + b.cx) / 2, (a.cy + b.cy) / 2, 0xD63535);
       a.wrongTimer = b.wrongTimer = WRONG_SHOW_SECS;
       onPlayerHit?.(ROUNDS[currentRound].damage);
     }
@@ -392,13 +387,12 @@ export function createPairsGame(
     if (hitFlashTimer > 0) {
       hitFlashTimer -= dt;
       hitFlashGfx.alpha = Math.max(0, (hitFlashTimer / hitFlashDuration) * hitFlashPeak);
-      if (hitFlashTimer <= 0) hitFlashGfx.visible = false;
     }
 
     // Card animations
     for (const card of cards) {
-      // Start match fade once isMatched (-1 = not yet started)
-      if (card.isMatched && card.matchFadeTimer < 0) {
+      // Start match fade only after flip animation completes — otherwise card fades while squished
+      if (card.isMatched && card.matchFadeTimer < 0 && card.flipPhase === 'idle') {
         card.matchFadeTimer = 0.4;
       }
       // Match fade-out
@@ -471,7 +465,7 @@ export function createPairsGame(
 
     if (roundTimer <= 0) {
       // Time up: penalize + advance
-      showFloat('⏱ TIME!', W / 2, H / 2, 0xff8800);
+      showFloat('⏱ TIME!', W / 2, H / 2, 0xF26A1A);
       triggerFlash(0.35, 0.4);
       onPlayerHit?.(ROUNDS[currentRound].damage);
       startBetween();
