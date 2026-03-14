@@ -6,19 +6,22 @@ export interface BattleAreaProps {
   isEnemyTurn: boolean;
   onMiniGameReady?: (app: Application) => void;
   className?: string;
+  backgroundUrl?: string | null;
 }
 
 /**
  * Battle arena panel that embeds a PixiJS canvas for mini-games.
  * Pass onMiniGameReady to receive the Application instance and mount game content on app.stage.
  */
-export function BattleArea({ isEnemyTurn, onMiniGameReady, className }: BattleAreaProps) {
+export function BattleArea({ isEnemyTurn, onMiniGameReady, className, backgroundUrl }: BattleAreaProps) {
   return (
     <div
       className={cn(
-        'game-panel flex-1 min-h-[140px] sm:min-h-[200px] rounded-xl border-2 border-dashed border-border bg-[var(--gradient-battle)] relative overflow-hidden shrink',
+        'game-panel flex-1 min-h-[140px] sm:min-h-[200px] rounded-xl border-2 border-dashed border-border relative overflow-hidden shrink',
+        !backgroundUrl && 'bg-[var(--gradient-battle)]',
         className,
       )}
+      style={backgroundUrl ? { backgroundImage: `url(${backgroundUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
     >
       <div className="absolute inset-0 opacity-5" style={{ background: 'var(--gradient-battle)' }} />
       <MiniGameCanvas onReady={onMiniGameReady} />

@@ -322,7 +322,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...initialState, token: null, authUser: null, usedNonBossGameIds: [], dungeonSession: null };
 
     case 'DUNGEON_START':
-      return { ...state, dungeonSession: action.payload };
+      return { ...state, dungeonSession: action.payload, usedNonBossGameIds: [] };
 
     case 'DUNGEON_END':
       return { ...state, dungeonSession: null };

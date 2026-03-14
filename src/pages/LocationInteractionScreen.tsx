@@ -45,7 +45,7 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
 export default function LocationInteractionScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { dispatch } = useGame();
+  const { dispatch, state } = useGame();
   const { t, tMarkerLabel } = useT();
   const { marker, serverEnemy, loading, isDungeonEnemy } = useLocationMarker(id);
 
@@ -53,7 +53,8 @@ export default function LocationInteractionScreen() {
   const [distanceMeters, setDistanceMeters] = useState<number | null>(null);
   const [verifyMessage, setVerifyMessage] = useState('');
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const enemyPhotoUrl = serverEnemy?.pathToPhoto ?? null;
+  const enemyPhotoUrl = serverEnemy?.pathToPhoto
+    ?? (isDungeonEnemy ? (state.dungeonSession?.backgroundUrl ?? null) : null);
 
   if (loading && !marker) {
     return (

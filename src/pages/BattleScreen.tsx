@@ -56,7 +56,9 @@ export default function BattleScreen() {
   const playerHpRef    = useRef<HTMLDivElement>(null);
   const dispatchRef    = useRef(dispatch);
   const battleEndedRef = useRef(false);
-  dispatchRef.current = dispatch;
+  const usedGamesRef   = useRef(state.usedNonBossGameIds);
+  dispatchRef.current  = dispatch;
+  usedGamesRef.current = state.usedNonBossGameIds;
 
   // Destroy game on unmount to prevent ticker running after navigation
   useEffect(() => () => { miniGameRef.current?.destroy(); }, []);
@@ -184,18 +186,6 @@ export default function BattleScreen() {
 
   return (
     <GameShell pattern="battle">
-      {/* Dungeon session: styled background from AI-processed scan photo */}
-      {dungeonBg && (
-        <div
-          className="absolute inset-0 z-0 pointer-events-none"
-          style={{
-            backgroundImage: `url(${dungeonBg})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            opacity: 0.35,
-          }}
-        />
-      )}
       <ScreenTransition className={`p-0 gap-2 flex flex-col min-h-0 flex-1 relative${gameActive ? ' select-none' : ''}`}>
         {/* Overlay blocks taps/selection; Enemy and Your HP panels have z-30 so they stay visible above overlay */}
         {gameActive && (
@@ -210,8 +200,8 @@ export default function BattleScreen() {
         <div className="game-panel border-l-4 border-l-[hsl(var(--game-red))] bg-gradient-to-r from-[hsl(var(--game-red)/0.08)] to-card p-2 relative z-30">
           <div className="flex items-center gap-2 mb-1">
             <div className="w-14 h-14 rounded-lg border-2 border-border bg-muted flex items-center justify-center text-4xl overflow-hidden shadow-[0_2px_0_hsl(var(--border)),inset_0_1px_0_hsl(var(--bar-highlight)/0.6)]">
-              {battle?.enemyPhotoUrl ? (
-                <img src={battle.enemyPhotoUrl} alt="" className="w-full h-full object-cover" />
+              {(battle?.enemyPhotoUrl || state.dungeonSession?.backgroundUrl) ? (
+                <img src={battle?.enemyPhotoUrl ?? state.dungeonSession?.backgroundUrl!} alt="" className="w-full h-full object-cover" />
               ) : (
                 resolvedMonster.emoji
               )}
@@ -253,16 +243,20 @@ export default function BattleScreen() {
           <BattleArea
             isEnemyTurn={battle?.turn === 'enemy'}
             className={gameActive ? 'relative z-30' : undefined}
+            backgroundUrl={dungeonBg}
             onMiniGameReady={(app) => {
               miniGameRef.current?.destroy();
               const isBoss = !!battle?.isBoss;
-              let used = state.usedNonBossGameIds;
+              let used = usedGamesRef.current;
+              const lastUsed = used[used.length - 1] ?? -1;
               if (used.length >= 3) {
                 dispatchRef.current({ type: 'RESET_NON_BOSS_GAMES' });
                 used = [];
               }
               const nonBossIndices = [0, 1, 2];
-              const available = nonBossIndices.filter((i) => !used.includes(i));
+              // Filter out already-used games; after a cycle reset also avoid repeating the last game
+              let available = nonBossIndices.filter((i) => !used.includes(i) && i !== lastUsed);
+              if (available.length === 0) available = nonBossIndices.filter((i) => !used.includes(i));
               const gameIndex = isBoss ? 3 : available[Math.floor(Math.random() * available.length)];
               if (!isBoss) {
                 dispatchRef.current({ type: 'RECORD_NON_BOSS_GAME_USED', payload: gameIndex });
@@ -315,7 +309,10 @@ export default function BattleScreen() {
             }}
           />
         ) : (
-          <div className="game-panel flex-1 min-h-[140px] sm:min-h-[200px] rounded-xl border-2 border-dashed border-border bg-[var(--gradient-battle)] relative overflow-hidden shrink flex items-center justify-center">
+          <div
+            className="game-panel flex-1 min-h-[140px] sm:min-h-[200px] rounded-xl border-2 border-dashed border-border relative overflow-hidden shrink flex items-center justify-center"
+            style={dungeonBg ? { backgroundImage: `url(${dungeonBg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: 'var(--gradient-battle)' }}
+          >
             <span className="text-5xl opacity-20 select-none">⚔️</span>
           </div>
         )}
