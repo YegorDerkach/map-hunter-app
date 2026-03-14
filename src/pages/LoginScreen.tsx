@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '@/context/GameContext';
+import { useT } from '@/i18n/useT';
 import { GameButton } from '@/components/game/GameButton';
 
 const mapDecorations = ['🌲', '⛰️', '🏰', '🌊', '🌋', '🏕️', '🌿', '🗻', '🏔️', '🌾'];
@@ -7,6 +8,7 @@ const mapDecorations = ['🌲', '⛰️', '🏰', '🌊', '🌋', '🏕️', '�
 export default function LoginScreen() {
   const navigate = useNavigate();
   const { dispatch, state } = useGame();
+  const { t } = useT();
 
   const handleGuest = () => {
     dispatch({ type: 'LOGIN', payload: { name: 'Hunter' } });
@@ -36,10 +38,10 @@ export default function LoginScreen() {
             🗺️
           </div>
           <h1 className="font-display font-bold text-5xl text-[hsl(40_60%_96%)] game-text-stroke tracking-wide drop-shadow-md">
-            Map Hunter
+            {t('login_appName')}
           </h1>
           <p className="text-[hsl(38_70%_80%)] text-xs font-display tracking-widest uppercase mt-1">
-            Explore • Hunt • Conquer
+            {t('login_tagline')}
           </p>
         </div>
 
@@ -51,7 +53,7 @@ export default function LoginScreen() {
             fullWidth
             onClick={handleGuest}
           >
-            🎮 Play as Guest
+            🎮 {t('login_playGuest')}
           </GameButton>
 
           <GameButton
@@ -61,7 +63,7 @@ export default function LoginScreen() {
             className="bg-[hsl(173_40%_35%/0.3)] border-[hsl(173_50%_50%/0.5)] text-[hsl(40_50%_95%)] hover:bg-[hsl(173_40%_40%/0.4)] shadow-[0_4px_0_hsl(173_50%_25%/0.4)]"
             onClick={handleGuest}
           >
-            <span className="font-bold text-lg leading-none">G</span> Sign in with Google
+            <span className="font-bold text-lg leading-none">G</span> {t('login_google')}
           </GameButton>
 
           <GameButton
@@ -71,12 +73,12 @@ export default function LoginScreen() {
             className="bg-[hsl(173_40%_35%/0.3)] border-[hsl(173_50%_50%/0.5)] text-[hsl(40_50%_95%)] hover:bg-[hsl(173_40%_40%/0.4)] shadow-[0_4px_0_hsl(173_50%_25%/0.4)]"
             onClick={handleGuest}
           >
-            🍎 Sign in with Apple
+            🍎 {t('login_apple')}
           </GameButton>
         </div>
 
         <p className="text-[hsl(38_40%_70%)] text-xs text-center">
-          By continuing you agree to our Terms & Privacy Policy
+          {t('login_terms')}
         </p>
       </div>
     </div>

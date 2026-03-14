@@ -8,13 +8,25 @@ import { ScreenTransition } from '@/components/game/ScreenTransition';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useGame } from '@/context/GameContext';
+import { useT } from '@/i18n/useT';
 import type { ItemCategory, InventoryItem } from '@/types/game';
 
-const CATEGORIES: ItemCategory[] = ['weapons', 'armor', 'consumables', 'materials', 'keys'];
+const INVENTORY_TAB_CATEGORIES = ['weapons', 'armor', 'consumables', 'materials', 'keys'] as const;
+type InventoryTabCategory = (typeof INVENTORY_TAB_CATEGORIES)[number];
+const CATEGORIES: ItemCategory[] = [...INVENTORY_TAB_CATEGORIES];
 const MIN_GRID_CELLS = 10;
+
+const CATEGORY_KEYS: Record<InventoryTabCategory, string> = {
+  weapons: 'inventory_category_weapons',
+  armor: 'inventory_category_armor',
+  consumables: 'inventory_category_consumables',
+  materials: 'inventory_category_materials',
+  keys: 'inventory_category_keys',
+};
 
 export default function InventoryScreen() {
   const { state } = useGame();
+  const { t, tItemName, tItemDesc } = useT();
   const [activeCategory, setActiveCategory] = useState<ItemCategory>('weapons');
   const [selected, setSelected] = useState<InventoryItem | null>(null);
 
@@ -22,13 +34,15 @@ export default function InventoryScreen() {
   const emptySlots = Math.max(0, MIN_GRID_CELLS - filtered.length);
   const totalItems = state.inventory.reduce((sum, inv) => sum + inv.quantity, 0);
 
+  const categoryLabels = Object.fromEntries(INVENTORY_TAB_CATEGORIES.map((c) => [c, t(CATEGORY_KEYS[c])])) as Partial<Record<ItemCategory, string>>;
+
   return (
     <GameShell pattern="grid">
       <BackHeader
-        title="Inventory"
+        title={t('title_inventory')}
         right={
           <span className="text-xs font-display font-bold text-muted-foreground rounded-full border-2 border-border bg-muted px-3 py-1.5 shadow-[0_2px_0_hsl(var(--border)),inset_0_1px_0_hsl(var(--bar-highlight)/0.5)]">
-            {totalItems} items
+            {t('inventory_itemsCount', { count: totalItems })}
           </span>
         }
       />
@@ -38,6 +52,7 @@ export default function InventoryScreen() {
             categories={CATEGORIES}
             active={activeCategory}
             onChange={setActiveCategory}
+            labels={categoryLabels}
           />
         </div>
 
@@ -71,25 +86,25 @@ export default function InventoryScreen() {
                     {selected.item.emoji}
                   </div>
                   <div>
-                    <DialogTitle className="font-display text-lg">{selected.item.name}</DialogTitle>
-                    <p className="text-xs text-muted-foreground capitalize">{selected.item.rarity}</p>
+                    <DialogTitle className="font-display text-lg">{tItemName(selected.item.id, selected.item.name)}</DialogTitle>
+                    <p className="text-xs text-muted-foreground capitalize">{t(`rarity_${selected.item.rarity}` as any)}</p>
                   </div>
                 </div>
               </DialogHeader>
-              <p className="text-sm text-muted-foreground">{selected.item.description}</p>
+              <p className="text-sm text-muted-foreground">{tItemDesc(selected.item.id, selected.item.description)}</p>
               <p className="text-xs text-muted-foreground">
-                Quantity: <strong className="text-foreground">{selected.quantity}</strong>
+                {t('inventory_quantity')}: <strong className="text-foreground">{selected.quantity}</strong>
               </p>
               <div className="flex gap-2 mt-2">
                 {selected.item.category === 'consumables' && (
-                  <GameButton variant="primary" size="sm" fullWidth>Use</GameButton>
+                  <GameButton variant="primary" size="sm" fullWidth>{t('common_use')}</GameButton>
                 )}
                 {(selected.item.category === 'weapons' || selected.item.category === 'armor') && (
                   <GameButton variant="primary" size="sm" fullWidth>
-                    {selected.equipped ? 'Unequip' : 'Equip'}
+                    {selected.equipped ? t('common_unequip') : t('common_equip')}
                   </GameButton>
                 )}
-                <GameButton variant="outline" size="sm" fullWidth>Drop</GameButton>
+                <GameButton variant="outline" size="sm" fullWidth>{t('common_drop')}</GameButton>
               </div>
             </>
           )}

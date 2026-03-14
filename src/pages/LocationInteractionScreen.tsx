@@ -5,6 +5,7 @@ import { GameButton } from '@/components/game/GameButton';
 import { HPBar } from '@/components/game/HPBar';
 import { ScreenTransition } from '@/components/game/ScreenTransition';
 import { useGame } from '@/context/GameContext';
+import { useT } from '@/i18n/useT';
 import { mapMarkers, monsters } from '@/data/monsters';
 import { items } from '@/data/items';
 import type { MarkerType } from '@/types/game';
@@ -19,10 +20,17 @@ const TYPE_BADGE_STYLES: Record<MarkerType, string> = {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+const LOCATION_TYPE_KEYS: Record<MarkerType, string> = {
+  monster: 'location_type_monster',
+  chest: 'location_type_chest',
+  event: 'location_type_event',
+};
+
 export default function LocationInteractionScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { dispatch } = useGame();
+  const { t, tMonster, tMarkerLabel } = useT();
 
   const marker = mapMarkers.find((m) => m.id === id);
   const monster = marker?.monsterId
@@ -32,13 +40,15 @@ export default function LocationInteractionScreen() {
   if (!marker) {
     return (
       <GameShell pattern="dots">
-        <BackHeader title="Location" />
+        <BackHeader title={t('title_location')} />
         <div className="flex-1 flex items-center justify-center p-8">
-          <p className="text-muted-foreground text-center">Location not found.</p>
+          <p className="text-muted-foreground text-center">{t('location_notFound')}</p>
         </div>
       </GameShell>
     );
   }
+
+  const headerTitle = tMarkerLabel(marker.type, marker.label, marker.monsterId);
 
   const handleFight = () => {
     if (!monster) return;
@@ -62,14 +72,14 @@ export default function LocationInteractionScreen() {
 
   return (
     <GameShell pattern="dots">
-      <BackHeader title={marker.label} />
+      <BackHeader title={headerTitle} />
       <ScreenTransition>
         <div className="flex flex-col items-center gap-6 p-6 flex-1">
           {/* Type badge */}
           <div
             className={`px-3 py-1 rounded-md border-2 text-xs font-display font-bold uppercase tracking-wide ${TYPE_BADGE_STYLES[marker.type]}`}
           >
-            {marker.type}
+            {t(LOCATION_TYPE_KEYS[marker.type] as any)}
           </div>
 
           {/* Illustration */}
@@ -80,30 +90,30 @@ export default function LocationInteractionScreen() {
           {/* Name & stats */}
           <div className="w-full text-center">
             <h2 className="font-display font-bold text-2xl text-foreground mb-1">
-              {monster?.name ?? marker.label}
+              {monster ? tMonster(monster.id, monster.name) : tMarkerLabel(marker.type, marker.label, undefined)}
             </h2>
 
             {monster && (
               <>
                 <div className="inline-flex items-center gap-1.5 bg-muted border-2 border-border rounded-md px-3 py-1 mb-4">
-                  <span className="text-xs text-muted-foreground font-display">Level {monster.level}</span>
+                  <span className="text-xs text-muted-foreground font-display">{t('location_level', { level: monster.level })}</span>
                   <span className="text-muted-foreground">·</span>
-                  <span className="text-xs text-[hsl(var(--game-red))] font-display font-bold">ATK {monster.attack}</span>
+                  <span className="text-xs text-[hsl(var(--game-red))] font-display font-bold">{t('location_atk')} {monster.attack}</span>
                   <span className="text-muted-foreground">·</span>
-                  <span className="text-xs text-[hsl(var(--game-green))] font-display font-bold">DEF {monster.defense}</span>
+                  <span className="text-xs text-[hsl(var(--game-green))] font-display font-bold">{t('location_def')} {monster.defense}</span>
                 </div>
-                <HPBar current={monster.hp} max={monster.maxHp} label="Monster HP" className="mb-4" />
+                <HPBar current={monster.hp} max={monster.maxHp} label={t('location_monsterHp')} className="mb-4" />
               </>
             )}
 
             {isChest && (
               <p className="text-sm text-muted-foreground">
-                This chest may contain valuable loot. Open it to find out!
+                {t('location_chestDesc')}
               </p>
             )}
             {isEvent && (
               <p className="text-sm text-muted-foreground">
-                A special event is happening here. Participate for bonus rewards!
+                {t('location_eventDesc')}
               </p>
             )}
           </div>
@@ -112,12 +122,12 @@ export default function LocationInteractionScreen() {
           {monster && (
             <div className="w-full bg-muted/50 border-2 border-border rounded-lg p-3 flex gap-4 justify-center">
               <div className="text-center">
-                <p className="text-xs text-muted-foreground mb-0.5">Reward</p>
+                <p className="text-xs text-muted-foreground mb-0.5">{t('common_reward')}</p>
                 <p className="font-display font-bold text-sm text-[hsl(var(--game-yellow))]">+{monster.goldReward} 🪙</p>
               </div>
               <div className="w-px bg-border" />
               <div className="text-center">
-                <p className="text-xs text-muted-foreground mb-0.5">XP</p>
+                <p className="text-xs text-muted-foreground mb-0.5">{t('location_xp')}</p>
                 <p className="font-display font-bold text-sm text-primary">+{monster.xpReward} ⭐</p>
               </div>
             </div>
@@ -128,21 +138,21 @@ export default function LocationInteractionScreen() {
         <div className="p-4 flex flex-col gap-3 border-t-2 border-border">
           {monster && (
             <GameButton variant="danger" size="lg" fullWidth onClick={handleFight}>
-              ⚔️ Fight!
+              ⚔️ {t('common_fight')}!
             </GameButton>
           )}
           {isChest && (
             <GameButton variant="gold" size="lg" fullWidth onClick={handleOpenChest}>
-              🔓 Open Chest
+              🔓 {t('location_openChest')}
             </GameButton>
           )}
           {isEvent && (
             <GameButton variant="primary" size="lg" fullWidth>
-              🌟 Participate
+              🌟 {t('location_participate')}
             </GameButton>
           )}
           <GameButton variant="outline" size="md" fullWidth onClick={() => navigate(-1)}>
-            Leave
+            {t('location_leave')}
           </GameButton>
         </div>
       </ScreenTransition>

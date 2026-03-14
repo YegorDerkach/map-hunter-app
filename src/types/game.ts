@@ -113,6 +113,8 @@ export interface GameSettings {
   notificationsEnabled: boolean;
 }
 
+export type Locale = 'uk' | 'en';
+
 export interface GameState {
   player: Player;
   isLoggedIn: boolean;
@@ -121,4 +123,5 @@ export interface GameState {
   activeBattle: BattleState | null;
   settings: GameSettings;
   lastLoot: InventoryItem[];
+  locale: Locale;
 }

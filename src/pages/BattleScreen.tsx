@@ -13,6 +13,7 @@ import { items } from '@/data/items';
 // import { createPairsGame } from '@/games'; // Game 3 — disabled
 import { createTicTacToeGame } from '@/games'; // Game 4
 import type { MiniGame } from '@/games';
+import { useT } from '@/i18n/useT';
 
 const ENEMY_ATTACK_DELAY_MS = 700;
 
@@ -126,6 +127,8 @@ export default function BattleScreen() {
     navigate('/map');
   };
 
+  const { t, tMonster } = useT();
+
   if (!monster) return null;
 
   return (
@@ -148,15 +151,15 @@ export default function BattleScreen() {
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
-                <h2 className="font-display font-bold text-lg">{monster.name}</h2>
+                <h2 className="font-display font-bold text-lg">{tMonster(monster.id, monster.name)}</h2>
                 <span className="text-xs text-muted-foreground bg-muted border-2 border-border px-2 py-0.5 rounded-md shadow-[0_2px_0_hsl(var(--border)),inset_0_1px_0_hsl(var(--bar-highlight)/0.5)]">
-                  Lv.{monster.level}
+                  {t('common_levelShort', { level: String(monster.level) })}
                 </span>
               </div>
               <HPBar
                 current={battle?.monster.hp ?? monster.hp}
                 max={monster.maxHp}
-                label="Enemy HP"
+                label={t('battle_enemyHp')}
               />
             </div>
           </div>
@@ -209,7 +212,7 @@ export default function BattleScreen() {
           <HPBar
             current={battle?.playerHp ?? state.player.hp}
             max={state.player.maxHp}
-            label="Your HP"
+            label={t('battle_yourHp')}
             variant="player"
           />
         </div>
@@ -227,18 +230,18 @@ export default function BattleScreen() {
             {/* Chat bubble — cloud from the character image */}
             <div className="chat-bubble flex-1 min-h-0 pl-4 pr-3 pt-8 pb-2 flex flex-col relative ml-1">
               <div className="absolute top-1 right-1 game-panel px-1.5 py-0.5 leading-none shrink-0">
-                <span className="text-xs font-display font-bold text-muted-foreground">Чат</span>
+                <span className="text-xs font-display font-bold text-muted-foreground">{t('common_chat')}</span>
               </div>
               <div className="flex-1 min-w-0 flex items-center justify-center overflow-hidden">
                 <p className="text-sm text-muted-foreground font-display text-center max-w-full break-words line-clamp-3">
-                  Бій • Обери дію або використай предмет
+                  {t('battle_chooseAction')}
                 </p>
               </div>
             </div>
             {/* Buttons: fixed at bottom */}
             <div className="game-panel h-12 p-1.5 flex items-stretch gap-2 shrink-0">
               <GameButton variant="danger" size="sm" onClick={handleEscape} className="shadow-lg flex-1 min-w-0 flex items-center justify-center gap-1">
-                Втекти
+                {t('battle_escape')}
               </GameButton>
               <GameButton
                 variant="outline"
@@ -246,7 +249,7 @@ export default function BattleScreen() {
                 onClick={handleItem}
                 disabled={!isPlayerTurn}
                 className="flex-1 min-w-0 flex-col gap-0.5 flex items-center justify-center">
-                Предмет
+                {t('battle_item')}
               </GameButton>
             </div>
           </div>

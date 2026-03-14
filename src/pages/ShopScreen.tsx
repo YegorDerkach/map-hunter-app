@@ -8,42 +8,53 @@ import { ScreenTransition } from '@/components/game/ScreenTransition';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useGame } from '@/context/GameContext';
+import { useT } from '@/i18n/useT';
 import { shopItems } from '@/data/shop';
 import type { ShopCategory, ShopItem } from '@/types/game';
 import { toast } from 'sonner';
 
 const SHOP_CATEGORIES: ShopCategory[] = ['potions', 'keys', 'boosters', 'cosmetics'];
 
+const SHOP_CATEGORY_KEYS: Record<ShopCategory, string> = {
+  potions: 'shop_category_potions',
+  keys: 'shop_category_keys',
+  boosters: 'shop_category_boosters',
+  cosmetics: 'shop_category_cosmetics',
+};
+
 export default function ShopScreen() {
   const { state, dispatch } = useGame();
+  const { t, tItemName, tItemDesc } = useT();
   const [activeCategory, setActiveCategory] = useState<ShopCategory>('potions');
 
   const filtered = shopItems.filter((s) => s.item.category === activeCategory);
+  const categoryLabels = Object.fromEntries(SHOP_CATEGORIES.map((c) => [c, t(SHOP_CATEGORY_KEYS[c])])) as Record<ShopCategory, string>;
 
   const handleBuy = (shopItem: ShopItem) => {
     const { price, gemPrice } = shopItem.item;
+    const itemName = tItemName(shopItem.item.id, shopItem.item.name);
 
     if (gemPrice) {
       if (state.player.gems < gemPrice) {
-        toast.error('Not enough gems!');
+        toast.error(t('shop_notEnoughGems'));
         return;
       }
       dispatch({ type: 'ADD_ITEM', payload: { item: shopItem.item, quantity: 1 } });
-      toast.success(`Bought ${shopItem.item.name}!`);
+      toast.success(t('shop_bought', { name: itemName }));
     } else if (price) {
       if (state.player.gold < price) {
-        toast.error('Not enough gold!');
+        toast.error(t('shop_notEnoughGold'));
         return;
       }
       dispatch({ type: 'SPEND_GOLD', payload: price });
       dispatch({ type: 'ADD_ITEM', payload: { item: shopItem.item, quantity: 1 } });
-      toast.success(`Bought ${shopItem.item.name}!`);
+      toast.success(t('shop_bought', { name: itemName }));
     }
   };
 
   return (
     <GameShell pattern="shop">
-      <BackHeader title="Shop" />
+      <BackHeader title={t('title_shop')} />
       <ScreenTransition>
         {/* Currency HUD */}
         <div className="game-strip mx-4 mt-3 flex gap-3 px-4 py-2.5 rounded-b-lg">
@@ -66,6 +77,7 @@ export default function ShopScreen() {
             categories={SHOP_CATEGORIES}
             active={activeCategory}
             onChange={setActiveCategory}
+            labels={categoryLabels}
           />
         </div>
 
@@ -73,7 +85,7 @@ export default function ShopScreen() {
           <div className="flex flex-col gap-3 md:grid md:grid-cols-2">
             {filtered.length === 0 && (
               <div className="text-center py-10 text-muted-foreground text-sm">
-                No items in this category
+                {t('shop_noItemsInCategory')}
               </div>
             )}
             {filtered.map((shopItem) => (
@@ -87,14 +99,14 @@ export default function ShopScreen() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <p className="font-display font-bold text-sm text-foreground truncate">
-                      {shopItem.item.name}
+                      {tItemName(shopItem.item.id, shopItem.item.name)}
                     </p>
                     {shopItem.featured && (
-                      <Badge className="text-[9px] px-1.5 py-0 h-4 shrink-0">Hot</Badge>
+                      <Badge className="text-[9px] px-1.5 py-0 h-4 shrink-0">{t('shop_hot')}</Badge>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground line-clamp-1">
-                    {shopItem.item.description}
+                    {tItemDesc(shopItem.item.id, shopItem.item.description)}
                   </p>
                   <div className="flex items-center gap-1 mt-1">
                     {shopItem.item.price > 0 ? (
@@ -114,7 +126,7 @@ export default function ShopScreen() {
                   onClick={() => handleBuy(shopItem)}
                   className="shrink-0"
                 >
-                  Buy
+                  {t('shop_buy')}
                 </GameButton>
               </div>
             ))}

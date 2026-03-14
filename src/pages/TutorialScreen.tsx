@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '@/context/GameContext';
+import { useT } from '@/i18n/useT';
 import { GameButton } from '@/components/game/GameButton';
 import { tutorialSteps } from '@/data/tutorial';
 
@@ -8,8 +9,12 @@ export default function TutorialScreen() {
   const [step, setStep] = useState(0);
   const navigate = useNavigate();
   const { dispatch } = useGame();
+  const { t } = useT();
   const current = tutorialSteps[step];
   const isLast = step === tutorialSteps.length - 1;
+
+  const titleKey = `tutorial_${current.id}_title` as const;
+  const bodyKey = `tutorial_${current.id}_body` as const;
 
   const handleNext = () => {
     if (isLast) {
@@ -38,10 +43,10 @@ export default function TutorialScreen() {
           <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[12px] border-r-[12px] border-b-[12px] border-l-transparent border-r-transparent border-b-[hsl(var(--card))]" />
 
           <h2 className="font-display font-bold text-xl text-foreground text-center mb-2">
-            {current.title}
+            {t(titleKey)}
           </h2>
           <p className="text-sm text-muted-foreground text-center leading-relaxed">
-            {current.body}
+            {t(bodyKey)}
           </p>
         </div>
 
@@ -68,7 +73,7 @@ export default function TutorialScreen() {
           fullWidth
           onClick={handleNext}
         >
-          {isLast ? '🚀 Start Playing!' : 'Next →'}
+          {isLast ? `🚀 ${t('tutorial_startPlaying')}` : t('tutorial_nextArrow')}
         </GameButton>
 
         {!isLast && (
@@ -79,7 +84,7 @@ export default function TutorialScreen() {
               navigate('/map');
             }}
           >
-            Skip tutorial
+            {t('tutorial_skip')}
           </button>
         )}
       </div>

@@ -4,6 +4,8 @@ interface CategoryTabsProps<T extends string> {
   categories: T[];
   active: T;
   onChange: (cat: T) => void;
+  /** Optional translated labels; key is category value */
+  labels?: Partial<Record<T, string>>;
   className?: string;
 }
 
@@ -11,6 +13,7 @@ export function CategoryTabs<T extends string>({
   categories,
   active,
   onChange,
+  labels,
   className,
 }: CategoryTabsProps<T>) {
   return (
@@ -28,7 +31,7 @@ export function CategoryTabs<T extends string>({
               : 'bg-card text-muted-foreground border-border shadow-[0_2px_0_hsl(var(--border)),inset_0_1px_0_hsl(var(--bar-highlight)/0.6)] hover:border-primary/50 hover:text-foreground hover:scale-[1.02] active:translate-y-[1px] active:shadow-none',
           )}
         >
-          {cat.charAt(0).toUpperCase() + cat.slice(1)}
+          {labels?.[cat] ?? cat.charAt(0).toUpperCase() + cat.slice(1)}
         </button>
       ))}
     </div>

@@ -1,7 +1,17 @@
-import React, { createContext, useContext, useReducer } from 'react';
-import { GameState, Player, InventoryItem, BattleState } from '@/types/game';
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { GameState, Player, InventoryItem, BattleState, Locale } from '@/types/game';
 import { startingInventory } from '@/data/items';
 import { monsters } from '@/data/monsters';
+
+const LOCALE_STORAGE_KEY = 'map-hunter-locale';
+
+function getInitialLocale(): Locale {
+  try {
+    const s = localStorage.getItem(LOCALE_STORAGE_KEY);
+    if (s === 'uk' || s === 'en') return s;
+  } catch {}
+  return 'uk';
+}
 
 const initialPlayer: Player = {
   name: 'Hunter',
@@ -31,6 +41,7 @@ const initialState: GameState = {
     notificationsEnabled: true,
   },
   lastLoot: [],
+  locale: getInitialLocale(),
 };
 
 export type GameAction =
@@ -46,7 +57,8 @@ export type GameAction =
   | { type: 'END_BATTLE'; payload: { won: boolean } }
   | { type: 'TOGGLE_SETTING'; payload: keyof GameState['settings'] }
   | { type: 'LOGOUT' }
-  | { type: 'SET_LOOT'; payload: InventoryItem[] };
+  | { type: 'SET_LOOT'; payload: InventoryItem[] }
+  | { type: 'SET_LOCALE'; payload: Locale };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -199,6 +211,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case 'SET_LOOT':
       return { ...state, lastLoot: action.payload };
 
+    case 'SET_LOCALE':
+      return { ...state, locale: action.payload };
+
     case 'LOGOUT':
       return { ...initialState };
 
@@ -216,6 +231,13 @@ const GameContext = createContext<GameContextType | null>(null);
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOCALE_STORAGE_KEY, state.locale);
+    } catch {}
+  }, [state.locale]);
+
   return (
     <GameContext.Provider value={{ state, dispatch }}>
       {children}

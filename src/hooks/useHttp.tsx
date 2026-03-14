@@ -40,9 +40,24 @@ export const useHttp = <T = any>(): HttpReturn<T> => {
                 headers["Authorization"] = `Bearer ${token}`;
             }
 
+            let actualBody: BodyInit | null = null;
+            if (body != null) {
+                if (body instanceof File) {
+                    const formData = new FormData();
+                    formData.append("file", body);
+                    actualBody = formData;
+                    delete (headers as Record<string, unknown>)["Content-Type"];
+                } else if (body instanceof FormData) {
+                    actualBody = body;
+                    delete (headers as Record<string, unknown>)["Content-Type"];
+                } else {
+                    actualBody = JSON.stringify(body);
+                }
+            }
+
             const response = await fetch(url, {
                 method,
-                body: body ? JSON.stringify(body) : null,
+                body: actualBody,
                 headers
             });
 
@@ -50,7 +65,7 @@ export const useHttp = <T = any>(): HttpReturn<T> => {
                 throw new Error(`Could not fetch ${url}, status: ${response.status}`);
             }
 
-            const data: T = await response.json();
+            const data: T = await response.json().catch(() => null as T);
             setLoading(false);
             return data;
 

@@ -1,6 +1,7 @@
 import { Coins, Star, CheckCircle2 } from 'lucide-react';
 import { Quest } from '@/types/game';
 import { cn } from '@/lib/utils';
+import { useT } from '@/i18n/useT';
 import { GameButton } from './GameButton';
 
 interface QuestCardProps {
@@ -15,6 +16,7 @@ const typeAccent: Record<string, { border: string; progress: string; bg: string 
 };
 
 export function QuestCard({ quest, onClaim }: QuestCardProps) {
+  const { t } = useT();
   const progress = Math.round((quest.current / quest.target) * 100);
   const canClaim = quest.current >= quest.target && !quest.completed;
   const accent = typeAccent[quest.type] ?? typeAccent.daily;
@@ -45,7 +47,7 @@ export function QuestCard({ quest, onClaim }: QuestCardProps) {
       {/* Progress */}
       <div className="mb-3">
         <div className="flex justify-between text-xs text-muted-foreground mb-1">
-          <span>Progress</span>
+          <span>{t('quests_progress')}</span>
           <span>
             {quest.current} / {quest.target}
           </span>
@@ -79,7 +81,7 @@ export function QuestCard({ quest, onClaim }: QuestCardProps) {
             onClick={() => onClaim(quest.id)}
             className="text-xs px-3 py-1.5"
           >
-            Claim
+            {t('quests_claim')}
           </GameButton>
         )}
       </div>

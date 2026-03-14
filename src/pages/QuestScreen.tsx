@@ -5,6 +5,7 @@ import { ScreenTransition } from '@/components/game/ScreenTransition';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useGame } from '@/context/GameContext';
+import { useT } from '@/i18n/useT';
 import { quests } from '@/data/quests';
 import type { Quest, QuestType } from '@/types/game';
 import { toast } from 'sonner';
@@ -15,13 +16,14 @@ interface QuestListProps {
   quests: Quest[];
   type: QuestType;
   onClaim: (questId: string) => void;
+  emptyMessage: string;
 }
 
-function QuestList({ quests, type, onClaim }: QuestListProps) {
+function QuestList({ quests, type, onClaim, emptyMessage }: QuestListProps) {
   if (quests.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground text-sm">
-        No {type} quests available
+        {emptyMessage}
       </div>
     );
   }
@@ -41,6 +43,7 @@ const TAB_CLASS =
 
 export default function QuestScreen() {
   const { dispatch } = useGame();
+  const { t } = useT();
 
   const byType = (type: QuestType) => quests.filter((q) => q.type === type);
 
@@ -52,31 +55,33 @@ export default function QuestScreen() {
     toast.success(`+${quest.rewardGold} Gold & +${quest.rewardXP} XP!`);
   };
 
+  const typeLabel = (type: QuestType) => type === 'daily' ? t('quests_daily') : type === 'weekly' ? t('quests_weekly') : t('quests_story');
+
   return (
     <GameShell pattern="quest">
-      <BackHeader title="Quests" />
+      <BackHeader title={t('title_quests')} />
       <ScreenTransition>
         <div className="flex-1 px-4 pt-4 flex flex-col">
           <Tabs defaultValue="daily" className="flex flex-col flex-1">
             <TabsList className="game-strip w-full mb-4 p-1 h-auto gap-1 flex rounded-b-lg">
-              <TabsTrigger value="daily" className={TAB_CLASS}>Daily</TabsTrigger>
-              <TabsTrigger value="weekly" className={TAB_CLASS}>Weekly</TabsTrigger>
-              <TabsTrigger value="story" className={TAB_CLASS}>Story</TabsTrigger>
+              <TabsTrigger value="daily" className={TAB_CLASS}>{t('quests_daily')}</TabsTrigger>
+              <TabsTrigger value="weekly" className={TAB_CLASS}>{t('quests_weekly')}</TabsTrigger>
+              <TabsTrigger value="story" className={TAB_CLASS}>{t('quests_story')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="daily" className="flex-1 flex flex-col">
               <ScrollArea className="flex-1">
-                <QuestList quests={byType('daily')} type="daily" onClaim={handleClaim} />
+                <QuestList quests={byType('daily')} type="daily" onClaim={handleClaim} emptyMessage={t('quests_noAvailable', { type: typeLabel('daily') })} />
               </ScrollArea>
             </TabsContent>
             <TabsContent value="weekly" className="flex-1 flex flex-col">
               <ScrollArea className="flex-1">
-                <QuestList quests={byType('weekly')} type="weekly" onClaim={handleClaim} />
+                <QuestList quests={byType('weekly')} type="weekly" onClaim={handleClaim} emptyMessage={t('quests_noAvailable', { type: typeLabel('weekly') })} />
               </ScrollArea>
             </TabsContent>
             <TabsContent value="story" className="flex-1 flex flex-col">
               <ScrollArea className="flex-1">
-                <QuestList quests={byType('story')} type="story" onClaim={handleClaim} />
+                <QuestList quests={byType('story')} type="story" onClaim={handleClaim} emptyMessage={t('quests_noAvailable', { type: typeLabel('story') })} />
               </ScrollArea>
             </TabsContent>
           </Tabs>

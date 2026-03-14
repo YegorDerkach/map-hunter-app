@@ -6,12 +6,14 @@ import { StatusBar } from '@/components/game/StatusBar';
 import { GameMap } from '@/components/game/GameMap';
 import { FloatingActionButton } from '@/components/game/FloatingActionButton';
 import { GameButton } from '@/components/game/GameButton';
+import { useT } from '@/i18n/useT';
 import { mapMarkers } from '@/data/monsters';
 import { quests } from '@/data/quests';
 import type { MapMarkerData } from '@/types/game';
 
 export default function MainMapScreen() {
   const navigate = useNavigate();
+  const { t } = useT();
   const activeQuests = quests.filter((q) => !q.completed).length;
   const centerFnRef = useRef<(() => void) | null>(null);
   const [, forceUpdate] = useState(0);
@@ -49,28 +51,28 @@ export default function MainMapScreen() {
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-10 md:hidden">
           <FloatingActionButton
             icon={User}
-            label="Character"
+            label={t('nav_character')}
             onClick={() => navigate('/character')}
           />
           <FloatingActionButton
             icon={Backpack}
-            label="Inventory"
+            label={t('nav_inventory')}
             onClick={() => navigate('/inventory')}
           />
           <FloatingActionButton
             icon={ScrollText}
-            label="Quests"
+            label={t('nav_quests')}
             onClick={() => navigate('/quests')}
             badge={activeQuests}
           />
           <FloatingActionButton
             icon={ShoppingCart}
-            label="Shop"
+            label={t('nav_shop')}
             onClick={() => navigate('/shop')}
           />
           <FloatingActionButton
             icon={Settings}
-            label="Settings"
+            label={t('nav_settings')}
             onClick={() => navigate('/settings')}
           />
         </div>
@@ -79,7 +81,7 @@ export default function MainMapScreen() {
         <button
           type="button"
           className="absolute bottom-24 right-3 md:bottom-20 md:right-4 w-10 h-10 rounded-lg bg-card border-2 border-border shadow-[0_2px_0_hsl(var(--border)),inset_0_1px_0_hsl(var(--bar-highlight)/0.6)] flex items-center justify-center z-10 transition-[box-shadow,transform] duration-150 active:translate-y-[2px] active:shadow-none"
-          aria-label="Center on player"
+          aria-label={t('common_centerOnPlayer')}
           onClick={() => centerFnRef.current?.()}
         >
           <MapPin className="w-4 h-4 text-primary" />
@@ -88,25 +90,25 @@ export default function MainMapScreen() {
         {/* Bottom bar — phone: strip like StatusBar */}
         <div className="absolute bottom-0 left-0 right-0 z-10 p-4 game-strip-bottom md:hidden">
           <GameButton variant="primary" size="lg" fullWidth className="text-lg">
-            🔍 Scan Area
+            🔍 {t('nav_scanArea')}
           </GameButton>
         </div>
 
         {/* Bottom nav bar — tablet+ */}
         <div className="absolute bottom-0 left-0 right-0 z-10 hidden md:flex items-center gap-3 px-4 py-2.5 game-strip-bottom">
-          <FloatingActionButton icon={User} label="Character" onClick={() => navigate('/character')} />
-          <FloatingActionButton icon={Backpack} label="Inventory" onClick={() => navigate('/inventory')} />
+          <FloatingActionButton icon={User} label={t('nav_character')} onClick={() => navigate('/character')} />
+          <FloatingActionButton icon={Backpack} label={t('nav_inventory')} onClick={() => navigate('/inventory')} />
           <FloatingActionButton
             icon={ScrollText}
-            label="Quests"
+            label={t('nav_quests')}
             onClick={() => navigate('/quests')}
             badge={activeQuests}
           />
           <GameButton variant="primary" size="md" fullWidth className="flex-1">
-            🔍 Scan Area
+            🔍 {t('nav_scanArea')}
           </GameButton>
-          <FloatingActionButton icon={ShoppingCart} label="Shop" onClick={() => navigate('/shop')} />
-          <FloatingActionButton icon={Settings} label="Settings" onClick={() => navigate('/settings')} />
+          <FloatingActionButton icon={ShoppingCart} label={t('nav_shop')} onClick={() => navigate('/shop')} />
+          <FloatingActionButton icon={Settings} label={t('nav_settings')} onClick={() => navigate('/settings')} />
         </div>
       </div>
     </GameShell>

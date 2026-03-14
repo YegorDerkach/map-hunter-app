@@ -1,12 +1,14 @@
 import { useNavigate } from 'react-router-dom';
-import { Music, Volume2, Bell, User, Lock, HelpCircle, LogOut } from 'lucide-react';
+import { Music, Volume2, Bell, User, Lock, HelpCircle, LogOut, Languages } from 'lucide-react';
 import { GameShell } from '@/components/game/GameShell';
 import { BackHeader } from '@/components/game/BackHeader';
 import { ScreenTransition } from '@/components/game/ScreenTransition';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useGame } from '@/context/GameContext';
+import { useT } from '@/i18n/useT';
 import { toast } from 'sonner';
+import type { Locale } from '@/types/game';
 
 interface SettingRowProps {
   icon: React.ReactNode;
@@ -48,28 +50,62 @@ function SettingRow({ icon, label, right, onClick, danger }: SettingRowProps) {
 export default function SettingsScreen() {
   const { state, dispatch } = useGame();
   const navigate = useNavigate();
-  const { settings } = state;
+  const { t } = useT();
+  const { settings, locale } = state;
 
   const handleLogout = () => {
     dispatch({ type: 'LOGOUT' });
     navigate('/login', { replace: true });
   };
 
+  const setLocale = (l: Locale) => dispatch({ type: 'SET_LOCALE', payload: l });
+
   return (
     <GameShell pattern="settings">
-      <BackHeader title="Settings" />
+      <BackHeader title={t('title_settings')} />
       <ScreenTransition>
         <div className="flex-1 overflow-y-auto">
+          {/* Language */}
+          <div className="px-4 pt-4 pb-2">
+            <p className="game-panel-header text-xs font-bold text-muted-foreground uppercase tracking-widest mb-0 px-1">
+              {t('settings_language')}
+            </p>
+          </div>
+          <div className="game-panel mx-4 overflow-hidden">
+            <SettingRow
+              icon={<Languages className="w-4 h-4" />}
+              label={t('settings_language')}
+              right={
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setLocale('uk')}
+                    className={`px-2 py-1 rounded text-xs font-bold border-2 ${locale === 'uk' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted border-border'}`}
+                  >
+                    {t('settings_language_uk')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLocale('en')}
+                    className={`px-2 py-1 rounded text-xs font-bold border-2 ${locale === 'en' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted border-border'}`}
+                  >
+                    {t('settings_language_en')}
+                  </button>
+                </div>
+              }
+            />
+          </div>
+
           {/* Audio section */}
           <div className="px-4 pt-4 pb-2">
             <p className="game-panel-header text-xs font-bold text-muted-foreground uppercase tracking-widest mb-0 px-1">
-              Audio
+              {t('settings_audio')}
             </p>
           </div>
           <div className="game-panel mx-4 overflow-hidden">
             <SettingRow
               icon={<Music className="w-4 h-4" />}
-              label="Music"
+              label={t('settings_music')}
               right={
                 <Switch
                   checked={settings.musicEnabled}
@@ -80,7 +116,7 @@ export default function SettingsScreen() {
             <Separator />
             <SettingRow
               icon={<Volume2 className="w-4 h-4" />}
-              label="Sound Effects"
+              label={t('settings_soundEffects')}
               right={
                 <Switch
                   checked={settings.soundEnabled}
@@ -93,13 +129,13 @@ export default function SettingsScreen() {
           {/* Notifications */}
           <div className="px-4 pt-4 pb-2">
             <p className="game-panel-header text-xs font-bold text-muted-foreground uppercase tracking-widest mb-0 px-1">
-              Notifications
+              {t('settings_notifications')}
             </p>
           </div>
           <div className="game-panel mx-4 overflow-hidden">
             <SettingRow
               icon={<Bell className="w-4 h-4" />}
-              label="Push Notifications"
+              label={t('settings_pushNotifications')}
               right={
                 <Switch
                   checked={settings.notificationsEnabled}
@@ -112,31 +148,31 @@ export default function SettingsScreen() {
           {/* Account */}
           <div className="px-4 pt-4 pb-2">
             <p className="game-panel-header text-xs font-bold text-muted-foreground uppercase tracking-widest mb-0 px-1">
-              Account
+              {t('settings_account')}
             </p>
           </div>
           <div className="game-panel mx-4 overflow-hidden">
             <SettingRow
               icon={<User className="w-4 h-4" />}
-              label="Account Details"
+              label={t('settings_accountDetails')}
               onClick={() => toast.info('Coming soon!')}
             />
             <Separator />
             <SettingRow
               icon={<Lock className="w-4 h-4" />}
-              label="Privacy Policy"
+              label={t('settings_privacyPolicy')}
               onClick={() => toast.info('Coming soon!')}
             />
             <Separator />
             <SettingRow
               icon={<HelpCircle className="w-4 h-4" />}
-              label="Help & Support"
+              label={t('settings_helpSupport')}
               onClick={() => toast.info('Coming soon!')}
             />
             <Separator />
             <SettingRow
               icon={<LogOut className="w-4 h-4" />}
-              label="Logout"
+              label={t('settings_logout')}
               onClick={handleLogout}
               danger
             />
@@ -144,7 +180,7 @@ export default function SettingsScreen() {
 
           {/* Version */}
           <p className="text-center text-xs text-muted-foreground py-6">
-            Map Hunter v1.0.0 • Made with ❤️
+            {t('settings_version')}
           </p>
         </div>
       </ScreenTransition>
