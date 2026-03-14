@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { signInWithPopup, getRedirectResult } from 'firebase/auth';
 import { useGame } from '@/context/GameContext';
 import { useT } from '@/i18n/useT';
 import { GameButton } from '@/components/game/GameButton';
@@ -8,9 +8,18 @@ import { login, register, loginWithGoogle, loginWithTelegram } from '@/service/a
 import { firebaseAuth, googleProvider } from '@/lib/firebase';
 import type { AuthUser } from '@/types/game';
 
+interface TelegramSafeAreaInset {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
 interface TelegramWebApp {
   initData: string;
   ready(): void;
+  safeAreaInset?: TelegramSafeAreaInset;
+  contentSafeAreaInset?: TelegramSafeAreaInset;
 }
 declare global {
   interface Window {
@@ -111,11 +120,6 @@ export default function LoginScreen() {
     setError(null);
     setLoading(true);
     try {
-      if (isTelegramWebView()) {
-        // Redirect flow: page will reload after Google auth, result is handled in useEffect above.
-        await signInWithRedirect(firebaseAuth, googleProvider);
-        return; // execution stops here; page redirects away
-      }
       const result = await signInWithPopup(firebaseAuth, googleProvider);
       const idToken = await result.user.getIdToken();
       const res = await loginWithGoogle(idToken);
@@ -200,8 +204,15 @@ export default function LoginScreen() {
     }
   };
 
+  const tgSafeTop =
+    (window.Telegram?.WebApp?.contentSafeAreaInset?.top ?? 0) ||
+    (window.Telegram?.WebApp?.safeAreaInset?.top ?? 0);
+
   return (
-    <div className="min-h-dvh relative overflow-hidden game-gradient-hero flex flex-col items-center justify-end pb-12 px-6">
+    <div
+      className="min-h-dvh relative overflow-hidden game-gradient-hero flex flex-col items-center justify-end pb-12 px-6"
+      style={tgSafeTop > 0 ? { paddingTop: tgSafeTop } : undefined}
+    >
       <div className="absolute inset-0 screen-texture-dots pointer-events-none opacity-80" />
       <div className="absolute inset-0 grid grid-cols-5 gap-4 p-4 opacity-20 pointer-events-none select-none">
         {Array.from({ length: 30 }).map((_, i) => (

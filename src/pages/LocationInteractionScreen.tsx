@@ -46,8 +46,8 @@ export default function LocationInteractionScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { dispatch } = useGame();
-  const { t, tMonster, tMarkerLabel } = useT();
-  const { marker, monster, serverEnemy, loading, isDungeonEnemy } = useLocationMarker(id);
+  const { t, tMarkerLabel } = useT();
+  const { marker, serverEnemy, loading, isDungeonEnemy } = useLocationMarker(id);
 
   const [verifyStep, setVerifyStep] = useState<VerifyStep>('idle');
   const [distanceMeters, setDistanceMeters] = useState<number | null>(null);
@@ -78,13 +78,6 @@ export default function LocationInteractionScreen() {
   }
 
   const headerTitle = tMarkerLabel(marker.type, marker.label, marker.monsterId ?? marker.enemyId);
-
-  // ─── Fight flow for local (non-server) monsters ────────────────────────────
-  const startLocalFight = () => {
-    if (!monster) return;
-    dispatch({ type: 'START_BATTLE', payload: monster.id });
-    navigate(`/battle/${monster.id}`);
-  };
 
   // ─── Fight flow for server enemies (requires proximity + photo) ─────────────
   const startServerFight = () => {
@@ -141,15 +134,11 @@ export default function LocationInteractionScreen() {
   };
 
   const handleFight = () => {
-    if (serverEnemy) {
-      if (isDungeonEnemy) {
-        // Dungeon session enemies skip proximity/photo verification
-        startServerFight();
-      } else {
-        handleVerify();
-      }
+    if (!serverEnemy) return;
+    if (isDungeonEnemy) {
+      startServerFight();
     } else {
-      startLocalFight();
+      handleVerify();
     }
   };
 
@@ -201,27 +190,14 @@ export default function LocationInteractionScreen() {
           <div className="w-36 h-36 rounded-xl border-2 border-b-[6px] border-border bg-muted flex items-center justify-center text-7xl game-shadow animate-float overflow-hidden">
             {enemyPhotoUrl ? (
               <img src={enemyPhotoUrl} alt="" className="w-full h-full object-cover" />
-            ) : monster ? monster.emoji : serverEnemy ? '⚔️' : '📦'}
+            ) : serverEnemy ? '⚔️' : '📦'}
           </div>
 
           {/* Name & stats */}
           <div className="w-full text-center">
             <h2 className="font-display font-bold text-xl text-foreground mb-1">
-              {monster ? tMonster(monster.id, monster.name) : serverEnemy ? serverEnemy.name : tMarkerLabel(marker.type, marker.label, undefined)}
+              {serverEnemy ? serverEnemy.name : tMarkerLabel(marker.type, marker.label, undefined)}
             </h2>
-
-            {monster && (
-              <>
-                <div className="inline-flex items-center gap-1.5 bg-muted border-2 border-border rounded-md px-3 py-1 mb-3">
-                  <span className="text-xs text-muted-foreground font-display">{t('location_level', { level: monster.level })}</span>
-                  <span className="text-muted-foreground">·</span>
-                  <span className="text-xs text-[hsl(var(--game-red))] font-display font-bold">{t('location_atk')} {monster.attack}</span>
-                  <span className="text-muted-foreground">·</span>
-                  <span className="text-xs text-[hsl(var(--game-green))] font-display font-bold">{t('location_def')} {monster.defense}</span>
-                </div>
-                <HPBar current={monster.hp} max={monster.maxHp} label={t('location_monsterHp')} className="mb-3" />
-              </>
-            )}
 
             {serverEnemy && (
               <>
@@ -238,20 +214,6 @@ export default function LocationInteractionScreen() {
             )}
           </div>
 
-          {/* Rewards preview */}
-          {monster && (
-            <div className="w-full bg-muted/50 border-2 border-border rounded-lg p-3 flex gap-4 justify-center">
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground mb-0.5">{t('common_reward')}</p>
-                <p className="font-display font-bold text-sm text-[hsl(var(--game-yellow))]">+{monster.goldReward} 🪙</p>
-              </div>
-              <div className="w-px bg-border" />
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground mb-0.5">{t('location_xp')}</p>
-                <p className="font-display font-bold text-sm text-primary">+{monster.xpReward} ⭐</p>
-              </div>
-            </div>
-          )}
 
           {/* Verification status messages */}
           {verifyStep === 'getting-location' && (
@@ -303,7 +265,7 @@ export default function LocationInteractionScreen() {
           )}
 
           {/* Main fight / open chest button */}
-          {verifyStep === 'idle' && (monster || serverEnemy) && (
+          {verifyStep === 'idle' && serverEnemy && (
             <GameButton
               variant="danger"
               size="lg"
