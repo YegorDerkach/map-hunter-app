@@ -196,6 +196,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         serverEnemyId: enemy.id,
         isBoss: enemy.isBoss,
         enemyPhotoUrl: enemy.pathToPhoto || undefined,
+        lat: enemy.latitude,
+        lng: enemy.longitude,
       };
       return { ...state, activeBattle: battle };
     }

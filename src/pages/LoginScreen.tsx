@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { signInWithPopup } from 'firebase/auth';
 import { useGame } from '@/context/GameContext';
 import { useT } from '@/i18n/useT';
 import { GameButton } from '@/components/game/GameButton';
-import { login, register } from '@/service/auth';
+import { login, register, loginWithGoogle } from '@/service/auth';
+import { firebaseAuth, googleProvider } from '@/lib/firebase';
 import type { AuthUser } from '@/types/game';
 
 const mapDecorations = ['🌲', '⛰️', '🏰', '🌊', '🌋', '🏕️', '🌿', '🗻', '🏔️', '🌾'];
@@ -24,9 +26,25 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleGuest = () => {
-    dispatch({ type: 'LOGIN', payload: { name: 'Hunter' } });
-    navigate(state.tutorialComplete ? '/map' : '/tutorial');
+  const handleGoogle = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const result = await signInWithPopup(firebaseAuth, googleProvider);
+      const idToken = await result.user.getIdToken();
+      const res = await loginWithGoogle(idToken);
+      const user = res.data as AuthUser | null;
+      if (res.token && user) {
+        dispatch({ type: 'LOGIN_SERVER', payload: { token: res.token, user } });
+        navigate(state.tutorialComplete ? '/map' : '/tutorial');
+      } else {
+        setError(t('login_error'));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('login_error'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -124,8 +142,14 @@ export default function LoginScreen() {
         <div className="w-full flex flex-col gap-3 bg-[hsl(200_35%_18%/0.6)] backdrop-blur border-[3px] border-[hsl(173_50%_45%/0.4)] rounded-xl p-5 shadow-[0_4px_0_hsl(200_30%_12%/0.5),inset_0_1px_0_hsl(173_50%_70%/0.15)]">
           {mode === 'choose' && (
             <>
-              <GameButton variant="gold" size="lg" fullWidth onClick={handleGuest}>
-                🎮 {t('login_playGuest')}
+              <GameButton
+                variant="gold"
+                size="lg"
+                fullWidth
+                onClick={handleGoogle}
+                disabled={loading}
+              >
+                <span className="font-bold text-lg leading-none">G</span> {t('login_google')}
               </GameButton>
               <GameButton
                 variant="outline"
@@ -136,6 +160,7 @@ export default function LoginScreen() {
               >
                 ✉️ {t('login_submit')}
               </GameButton>
+              {error && <p className="text-sm text-[hsl(0_70%_55%)]">{error}</p>}
               <button
                 type="button"
                 className="text-sm text-[hsl(173_60%_65%)] hover:underline font-display"
@@ -143,24 +168,6 @@ export default function LoginScreen() {
               >
                 {t('login_switchToRegister')}
               </button>
-              <GameButton
-                variant="outline"
-                size="lg"
-                fullWidth
-                className="bg-[hsl(173_40%_35%/0.3)] border-[hsl(173_50%_50%/0.5)] text-[hsl(40_50%_95%)]"
-                onClick={handleGuest}
-              >
-                <span className="font-bold text-lg leading-none">G</span> {t('login_google')}
-              </GameButton>
-              <GameButton
-                variant="outline"
-                size="lg"
-                fullWidth
-                className="bg-[hsl(173_40%_35%/0.3)] border-[hsl(173_50%_50%/0.5)] text-[hsl(40_50%_95%)]"
-                onClick={handleGuest}
-              >
-                🍎 {t('login_apple')}
-              </GameButton>
             </>
           )}
 

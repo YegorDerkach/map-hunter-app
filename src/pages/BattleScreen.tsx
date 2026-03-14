@@ -6,7 +6,7 @@ import { GameButton } from '@/components/game/GameButton';
 import { ScreenTransition } from '@/components/game/ScreenTransition';
 import { BattleArea } from '@/components/game/BattleArea';
 import { useGame } from '@/context/GameContext';
-import { endBattle, killEnemy } from '@/api';
+import { endBattle, killEnemy, getStreet } from '@/api';
 import { monsters } from '@/data/monsters';
 import { items } from '@/data/items';
 import {
@@ -46,6 +46,10 @@ export default function BattleScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { state, dispatch } = useGame();
+  const [phase, setPhase] = useState<'idle' | 'playing'>('idle');
+  const [fact, setFact] = useState<string | null>(null);
+  const [factLoading, setFactLoading] = useState(false);
+  const [factKey, setFactKey] = useState(0);
   const [gameActive, setGameActive] = useState(false);
   const [dpadRect, setDpadRect] = useState<{ top: number; left: number; size: number } | null>(null);
   const miniGameRef    = useRef<MiniGame | null>(null);
@@ -86,6 +90,22 @@ export default function BattleScreen() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // Fetch a location fact from the server whenever we enter idle phase and coords are available
+  useEffect(() => {
+    if (phase !== 'idle') return;
+    const lat = state.activeBattle?.lat;
+    const lng = state.activeBattle?.lng;
+    if (!lat || !lng) return;
+    let cancelled = false;
+    setFactLoading(true);
+    getStreet(lat, lng)
+      .then((text) => { if (!cancelled) setFact(text); })
+      .catch(() => { if (!cancelled) setFact(null); })
+      .finally(() => { if (!cancelled) setFactLoading(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, state.activeBattle?.lat, state.activeBattle?.lng]);
 
   const battle = state.activeBattle;
   const monster = battle?.monster ?? monsters.find((m) => m.id === id);
@@ -212,65 +232,96 @@ export default function BattleScreen() {
           </div>
         )}
 
-        {/* Battle arena — raised above overlay via z-30 when game is active */}
-        <BattleArea
-          isEnemyTurn={battle?.turn === 'enemy'}
-          className={gameActive ? 'relative z-30' : undefined}
-          onMiniGameReady={(app) => {
-            miniGameRef.current?.destroy();
-            const isBoss = !!battle?.isBoss;
-            let used = state.usedNonBossGameIds;
-            if (used.length >= 3) {
-              dispatchRef.current({ type: 'RESET_NON_BOSS_GAMES' });
-              used = [];
-            }
-            const nonBossIndices = [0, 1, 2];
-            const available = nonBossIndices.filter((i) => !used.includes(i));
-            const gameIndex = isBoss ? 3 : available[Math.floor(Math.random() * available.length)];
-            if (!isBoss) {
-              dispatchRef.current({ type: 'RECORD_NON_BOSS_GAME_USED', payload: gameIndex });
-            }
-
-            const commonOptions = {
-              onPlayerHit: (amount?: number) => {
-                dispatchRef.current({
-                  type: 'DEAL_DAMAGE',
-                  payload: { target: 'player', amount: amount ?? 34 },
-                });
-              },
-              onRoundComplete: () => {
-                const amount = Math.ceil(resolvedMonster.maxHp / 3);
-                if (amount > 0) {
-                  dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount } });
-                }
-              },
-            };
-
-            if (gameIndex === 3) {
-              miniGameRef.current = createTicTacToeGame(
-                app,
-                () => setGameActive(false),
-                {
-                  ...commonOptions,
-                  onDraw: () => {
-                    dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'player', amount: 15 } });
-                    dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount: 15 } });
-                  },
-                },
-              );
-            } else {
-              const onEnd = (_result: unknown) => setGameActive(false);
-              if (gameIndex === 0) {
-                miniGameRef.current = createDodgeGame(app, onEnd, commonOptions);
-              } else if (gameIndex === 1) {
-                miniGameRef.current = createArrowGame(app, onEnd, commonOptions);
-              } else {
-                miniGameRef.current = createPairsGame(app, onEnd, commonOptions);
+        {/* Battle arena — conditional: fact panel in idle, mini-game canvas in playing */}
+        {phase === 'playing' ? (
+          <BattleArea
+            isEnemyTurn={battle?.turn === 'enemy'}
+            className={gameActive ? 'relative z-30' : undefined}
+            onMiniGameReady={(app) => {
+              miniGameRef.current?.destroy();
+              const isBoss = !!battle?.isBoss;
+              let used = state.usedNonBossGameIds;
+              if (used.length >= 3) {
+                dispatchRef.current({ type: 'RESET_NON_BOSS_GAMES' });
+                used = [];
               }
-            }
-            setGameActive(true);
-          }}
-        />
+              const nonBossIndices = [0, 1, 2];
+              const available = nonBossIndices.filter((i) => !used.includes(i));
+              const gameIndex = isBoss ? 3 : available[Math.floor(Math.random() * available.length)];
+              if (!isBoss) {
+                dispatchRef.current({ type: 'RECORD_NON_BOSS_GAME_USED', payload: gameIndex });
+              }
+
+              const commonOptions = {
+                onPlayerHit: (amount?: number) => {
+                  dispatchRef.current({
+                    type: 'DEAL_DAMAGE',
+                    payload: { target: 'player', amount: amount ?? 34 },
+                  });
+                },
+                onRoundComplete: () => {
+                  const amount = Math.ceil(resolvedMonster.maxHp / 3);
+                  if (amount > 0) {
+                    dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount } });
+                  }
+                },
+              };
+
+              const endGame = () => {
+                setGameActive(false);
+                setPhase('idle');
+                setFactKey((k) => k + 1);
+              };
+
+              if (gameIndex === 3) {
+                miniGameRef.current = createTicTacToeGame(
+                  app,
+                  endGame,
+                  {
+                    ...commonOptions,
+                    onDraw: () => {
+                      dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'player', amount: 15 } });
+                      dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount: 15 } });
+                    },
+                  },
+                );
+              } else {
+                const onEnd = (_result: unknown) => endGame();
+                if (gameIndex === 0) {
+                  miniGameRef.current = createDodgeGame(app, onEnd, commonOptions);
+                } else if (gameIndex === 1) {
+                  miniGameRef.current = createArrowGame(app, onEnd, commonOptions);
+                } else {
+                  miniGameRef.current = createPairsGame(app, onEnd, commonOptions);
+                }
+              }
+              setGameActive(true);
+            }}
+          />
+        ) : (
+          <div
+            key={factKey}
+            className="game-panel flex-1 min-h-[140px] flex flex-col gap-3 p-3 animate-slide-up"
+          >
+            <div className="flex-1 flex items-center justify-center overflow-auto">
+              {factLoading ? (
+                <p className="text-sm text-muted-foreground font-display animate-pulse text-center">…</p>
+              ) : fact ? (
+                <p className="text-sm font-display text-center leading-relaxed">{fact}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground font-display text-center">⚔️ {t('battle_play')}</p>
+              )}
+            </div>
+            <GameButton
+              variant="gold"
+              size="lg"
+              fullWidth
+              onClick={() => setPhase('playing')}
+            >
+              ▶ {t('battle_play')}
+            </GameButton>
+          </div>
+        )}
 
         {/* Player HP — above overlay (z-30) so it stays visible and updates in real time */}
         <div ref={playerHpRef} className="game-panel p-2 relative z-30">

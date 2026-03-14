@@ -116,6 +116,9 @@ export interface BattleState {
   isBoss?: boolean;
   /** Signed GCS URL for the enemy photo, propagated from Enemy.pathToPhoto */
   enemyPhotoUrl?: string;
+  /** GPS coordinates of the enemy — used to fetch a location fact from the server */
+  lat?: number;
+  lng?: number;
 }
 
 export interface GameSettings {

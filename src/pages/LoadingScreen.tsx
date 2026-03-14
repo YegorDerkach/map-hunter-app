@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getStoredToken } from '@/api/auth';
 
 const tips = [
   'Rare chests appear in busy places.',
@@ -28,7 +29,7 @@ export default function LoadingScreen() {
 
   useEffect(() => {
     if (progress >= 100) {
-      const t = setTimeout(() => navigate('/login'), 200);
+      const t = setTimeout(() => navigate(getStoredToken() ? '/map' : '/login'), 200);
       return () => clearTimeout(t);
     }
   }, [progress, navigate]);

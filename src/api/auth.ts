@@ -122,4 +122,28 @@ export function clearAuth(): void {
   }
 }
 
+export async function loginWithGoogle(idToken: string): Promise<ApiAuthResponse> {
+  const base = getApiBase();
+  if (!base) throw new Error('VITE_API_BASE is not set');
+  const res = await fetch(`${base}/api/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken }),
+  });
+  if (!res.ok) {
+    const message = await parseErrorResponse(res, 'google');
+    throw new Error(message);
+  }
+  const data = (await res.json().catch(() => ({}))) as ApiResponse<User>;
+  const out: ApiAuthResponse = {
+    token: data.token ?? '',
+    message: data.message ?? '',
+    data: data.data ?? null,
+  };
+  if (out.token) {
+    localStorage.setItem(AUTH_TOKEN_KEY, out.token);
+  }
+  return out;
+}
+
 export { AUTH_TOKEN_KEY };
