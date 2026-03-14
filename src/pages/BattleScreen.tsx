@@ -8,30 +8,49 @@ import { BattleArea } from '@/components/game/BattleArea';
 import { useGame } from '@/context/GameContext';
 import { monsters } from '@/data/monsters';
 import { items } from '@/data/items';
-import { createDodgeGame, DAMAGE_PER_HIT } from '@/games';
-
+// import { createDodgeGame, DAMAGE_PER_HIT } from '@/games'; // Game 1 — disabled
+import { createArrowGame, DAMAGE_PER_MISS } from '@/games';
 import type { MiniGame } from '@/games';
 
 const ENEMY_ATTACK_DELAY_MS = 700;
+
+function DPadBtn({ symbol, color, onHit, dir }: { symbol: string; color: string; dir: string; onHit: () => void }) {
+  return (
+    <button
+      aria-label={dir}
+      onPointerDown={(e) => { e.preventDefault(); onHit(); }}
+      className="w-full h-full rounded-xl flex items-center justify-center text-2xl font-bold select-none cursor-pointer
+        border-2 bg-card
+        shadow-[0_3px_0_rgba(0,0,0,0.4)]
+        active:translate-y-[3px] active:shadow-none
+        transition-[transform,box-shadow] duration-75"
+      style={{ borderColor: color, color, WebkitTapHighlightColor: 'transparent' }}
+    >
+      {symbol}
+    </button>
+  );
+}
 
 export default function BattleScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { state, dispatch } = useGame();
   const [gameActive, setGameActive] = useState(false);
-  const miniGameRef = useRef<MiniGame | null>(null);
-  const dispatchRef = useRef(dispatch);
+  const miniGameRef    = useRef<MiniGame | null>(null);
+  const dispatchRef    = useRef(dispatch);
+  const battleEndedRef = useRef(false);
   dispatchRef.current = dispatch;
 
   // Destroy game on unmount to prevent ticker running after navigation
   useEffect(() => () => { miniGameRef.current?.destroy(); }, []);
 
-  // Start battle on mount if not already active
+  // Start battle on mount only (removing state.activeBattle from deps prevents re-start after END_BATTLE)
   useEffect(() => {
     if (!state.activeBattle && id) {
       dispatch({ type: 'START_BATTLE', payload: id });
     }
-  }, [id, state.activeBattle, dispatch]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const battle = state.activeBattle;
   const monster = battle?.monster ?? monsters.find((m) => m.id === id);
@@ -46,16 +65,19 @@ export default function BattleScreen() {
     return () => clearTimeout(timer);
   }, [battle, dispatch, state.player.defense]);
 
-  // Win / lose detection
+  // Win / lose detection — battleEndedRef prevents re-firing before navigation completes
   useEffect(() => {
-    if (!battle) return;
+    if (!battle) { battleEndedRef.current = false; return; }
+    if (battleEndedRef.current) return;
     if (battle.monster.hp <= 0) {
+      battleEndedRef.current = true;
       dispatch({ type: 'GAIN_XP', payload: battle.monster.xpReward });
       dispatch({ type: 'GAIN_GOLD', payload: battle.monster.goldReward });
       dispatch({ type: 'SET_LOOT', payload: [{ item: items.health_potion, quantity: 1 }] });
       dispatch({ type: 'END_BATTLE', payload: { won: true } });
       navigate('/loot');
     } else if (battle.playerHp <= 0) {
+      battleEndedRef.current = true;
       dispatch({ type: 'END_BATTLE', payload: { won: false } });
       navigate('/map');
     }
@@ -109,29 +131,40 @@ export default function BattleScreen() {
           </div>
         </div>
 
+        {/* D-pad directional buttons — shown above overlay during arrow game */}
+        {gameActive && (
+          <div className="absolute bottom-3 inset-x-0 z-30 flex justify-center pointer-events-none">
+            <div className="grid gap-2 pointer-events-auto" style={{ gridTemplateColumns: 'repeat(3, 3rem)', gridTemplateRows: 'repeat(3, 3rem)' }}>
+              <div /><DPadBtn symbol="↑" dir="up"    color="#44ee88" onHit={() => miniGameRef.current?.hitDirection?.('up')}    /><div />
+              <DPadBtn symbol="←" dir="left"  color="#44aaff" onHit={() => miniGameRef.current?.hitDirection?.('left')}  />
+              <div />
+              <DPadBtn symbol="→" dir="right" color="#ff8822" onHit={() => miniGameRef.current?.hitDirection?.('right')} />
+              <div /><DPadBtn symbol="↓" dir="down"  color="#ff4466" onHit={() => miniGameRef.current?.hitDirection?.('down')}  /><div />
+            </div>
+          </div>
+        )}
+
         {/* Battle arena — raised above overlay via z-30 when game is active */}
         <BattleArea
           isEnemyTurn={battle?.turn === 'enemy'}
           className={gameActive ? 'relative z-30' : undefined}
           onMiniGameReady={(app) => {
             miniGameRef.current?.destroy();
-            miniGameRef.current = createDodgeGame(
+            miniGameRef.current = createArrowGame(
               app,
-              () => {
-                setGameActive(false);
-              },
+              () => { setGameActive(false); },
               {
                 onPlayerHit: () => {
-                  dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'player', amount: DAMAGE_PER_HIT } });
+                  dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'player', amount: DAMAGE_PER_MISS } });
                 },
                 onRoundComplete: () => {
-                  // 5 swords = round won → enemy loses 1/3 of max HP
-                  const amount = Math.floor(monster.maxHp / 3);
+                  // 5 hits = round won → enemy loses 1/3 of max HP
+                  const amount = Math.ceil(monster.maxHp / 3);
                   if (amount > 0) {
                     dispatchRef.current({ type: 'DEAL_DAMAGE', payload: { target: 'enemy', amount } });
                   }
                 },
-              }
+              },
             );
             setGameActive(true);
           }}

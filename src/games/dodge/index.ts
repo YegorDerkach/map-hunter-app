@@ -10,10 +10,11 @@ const TOTAL_GAME_SECONDS = 70; // 1 min 10 sec
 const LOW_TIME_THRESHOLD = 10; // blink timer red when this many seconds left
 const REFERENCE_DURATION = 20; // used for speed/extra fireball scaling (round has no fixed time)
 
+// Round 3 is ~20% easier than before (slower spawn, fewer extras, slower speed, more swords)
 const ROUNDS = [
   { spawnEvery: 1.5,  extraThreshold: 99,   extraChance: 0.0,  speedMult: 0.7,  swordEvery: 2.5 },
   { spawnEvery: 1.0,  extraThreshold: 0.6,  extraChance: 0.35, speedMult: 1.5,  swordEvery: 3.0 },
-  { spawnEvery: 0.75, extraThreshold: 0.45, extraChance: 0.5,  speedMult: 2.8,  swordEvery: 3.5 },
+  { spawnEvery: 0.9,  extraThreshold: 0.54, extraChance: 0.4,  speedMult: 2.24, swordEvery: 2.8 },
 ] as const;
 
 export const DAMAGE_PER_HIT   = 10;

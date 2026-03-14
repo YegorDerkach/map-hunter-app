@@ -1,5 +1,7 @@
 export interface MiniGame {
   destroy(): void;
+  /** Arrow game only — trigger a directional hit from an external button. */
+  hitDirection?: (dir: 'left' | 'right' | 'up' | 'down') => void;
 }
 
 export interface MiniGameResult {
